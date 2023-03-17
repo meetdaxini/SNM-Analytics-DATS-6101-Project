@@ -38,6 +38,7 @@ A continuous variable, credit score allows us to calculate its mean, median, mod
 ```{r, results='markup', warning=FALSE}
 library(ezids)
 library(dplyr)
+library(tidyverse)
 library(readr)
 library(ggplot2)
 knitr::opts_chunk$set(warning = F, results = "hide", message = F)
@@ -155,93 +156,26 @@ Count of missing values of Exited in the dataset: **`ExcitedCount`**
 
 
 ```{r}
-# Aligning the data according to the variable 'balance' and 'excited'
+# Aligning the data according to the variable 'balance', 'excited' and 'Geography'
 churn_data_filtered <- data %>%
-  filter(data$Balance > 0) %>%
-  mutate(Churned = ifelse(Exited == 1, "Churned", "Not Churned"))
-
-churned_data <- churn_data_filtered %>%
-  filter(Churned == "Churned")
-
-not_churned_data <- churn_data_filtered %>%
-  filter(Churned == "Not Churned")
+  filter(data$Balance > 0)
 
 ```
 
 
 ```{r}
-ggplot(data = churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
-
-ggplot(data = not_churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Not Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
+churn_data_grouped <- churn_data_filtered %>%
+  group_by(Exited, Geography, CreditScore) %>%
+  summarize(Count = n(), .groups = "drop")
 
 ```
 
 ```{r}
-ggplot(data = churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
-
-ggplot(data = not_churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Not Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
+ggplot(churn_data_grouped, aes(x = CreditScore, y = Count, fill = Geography)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ Exited) +
+  labs(x = "Credit Score", y = "Count", fill = "Geography")
 ```
-
-```{r}
-ggplot(data = churn_data_filtered, aes(x = Churned, y = CreditScore, fill = Churned)) +
-  geom_boxplot() +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Comparison of Credit Score for Churned and Not Churned Customers",
-       x = "",
-       y = "Credit Score") +
-  theme_bw()
-```
-
-### 3.3 Basic statistics
-
-```{r}
-
-```
-
-### 3.4 Simple correlations and tests
-
-```{r}
-
-```
-
-### 3.5 Normality
-
-```{r}
-
-```
-
-# 4.Conclusion
-
-**What is the best decision?**
-
-
-
-
-
 
 
 
