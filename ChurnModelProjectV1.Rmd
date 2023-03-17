@@ -111,49 +111,21 @@ Exited | Target variable, flag, whether client left the bank or not
 
 ```{r}
 # Missing values in the dataset
-RowNumberCount <- sum(is.na(data$RowNumber))
-CustomerIdCount <- sum(is.na(data$CustomerId))
-SurnameCount <- sum(is.na(data$Surname))
-CreditScoreCount <- sum(is.na(data$CreditScore))
-GeographyCount <- sum(is.na(data$Geography))
-GenderCount <- sum(is.na(data$Gender))
-AgeCount <- sum(is.na(data$Age))
-TenureCount <- sum(is.na(data$Tenure))
-BalanceCount <- sum(is.na(data$Balance))
-NoPCount <- sum(is.na(data$NumOfProducts))
-HasCrCardCount <- sum(is.na(data$HasCrCard))
-ActiveCount <- sum(is.na(data$IsActiveMember))
-SalaryCount <- sum(is.na(data$EstimatedSalary))
-ExcitedCount <- sum(is.na(data$Exited))
+cat("Missing values of RowNumber in the dataset:", sum(is.na(data$RowNumber)))
+cat("\nMissing values of CustomerId in the dataset:", sum(is.na(data$CustomerId)))
+cat("\nMissing values of Surname in the dataset:", sum(is.na(data$Surname)))
+cat("\nMissing values of CreditScore in the dataset:", sum(is.na(data$CreditScore)))
+cat("\nMissing values of Geography in the dataset:", sum(is.na(data$Geography)))
+cat("\nMissing values of Gender in the dataset:", sum(is.na(data$Gender)))
+cat("\nMissing values of Age in the dataset:", sum(is.na(data$Age)))
+cat("\nMissing values of Tenure in the dataset:", sum(is.na(data$Tenure)))
+cat("\nMissing values of Balance in the dataset:", sum(is.na(data$Balance)))
+cat("\nMissing values of NumOfProducts in the dataset:", sum(is.na(data$NumOfProducts)))
+cat("\nMissing values of HasCrCard in the dataset:", sum(is.na(data$HasCrCard)))
+cat("\nMissing values of IsActiveMember in the dataset:", sum(is.na(data$IsActiveMember)))
+cat("\nMissing values of EstimatedSalary in the dataset:", sum(is.na(data$EstimatedSalary)))
+cat("\nMissing values of Exited in the dataset:", sum(is.na(data$Exited)))
 ```
-Count of missing values of RowNumber in the dataset: **`RowNumberCount`**
-
-Count of missing values of CustomerId in the dataset: **`CustomerIdCount`**
-
-Count of missing values of Surname in the dataset: **`SurnameCount`**
-
-Count of missing values of CreditScore in the dataset: **`CreditScoreCount`**
-
-Count of missing values of Geography in the dataset: **`GeographyCount`**
-
-Count of missing values of Gender in the dataset: **`GenderCount`**
-
-Count of missing values of Age in the dataset: **`AgeCount`**
-
-Count of missing values of Tenure in the dataset: **`TenureCount`**
-
-Count of missing values of Balance in the dataset: **`BalanceCount`**
-
-Count of missing values of NumOfProducts in the dataset: **`NoPCount`**
-
-Count of missing values of HasCrCard in the dataset: **`HasCrCardCount`**
-
-Count of missing values of IsActiveMember in the dataset: **`ActiveCount`**
-
-Count of missing values of EstimatedSalary in the dataset: **`SalaryCount`**
-
-Count of missing values of Exited in the dataset: **`ExcitedCount`**
-
 
 ```{r}
 # Aligning the data according to the variable 'balance', 'excited' and 'Geography'
