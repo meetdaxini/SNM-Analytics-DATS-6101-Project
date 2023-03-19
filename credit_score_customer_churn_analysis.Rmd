@@ -104,6 +104,30 @@ ggplot(churn_data_filtered, aes(x = factor(Exited), y = CreditScore, fill = fact
   scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
 ```
 
+### Box Plot of Credit Score Distribution by Churn Status
+
+The box plot for the given data displays the distribution of credit scores by churn status. It has two box plots, one for customers who have not churned (`Exited = 0`) and one for customers who have churned (`Exited = 1`).
+
+Each box plot has the following key components:
+
+- **Median** (the horizontal line inside the box): This represents the middle value of the credit scores in each group.
+- **Lower quartile** (the left edge of the box): This represents the value below which 25% of the credit scores in each group lie.
+- **Upper quartile** (the right edge of the box): This represents the value below which 75% of the credit scores in each group lie.
+- **Interquartile range** (IQR, the width of the box): This represents the range within which the middle 50% of the credit scores in each group lie.
+- **Whiskers** (the lines extending from the box): These represent the range of credit scores that are within 1.5 times the IQR from the lower and upper quartiles.
+- **Outliers** (individual points outside the whiskers): These represent credit scores that fall outside the whisker range and are considered unusual or extreme values.
+
+Based on the box plot, we can make the following observations:
+
+- The median credit score for both groups (churned and not churned) is quite similar(around 650), indicating that there might not be a significant difference in *the central tendency* of credit scores between
+the two groups.
+
+- The overall range of credit scores and *the interquartile ranges* for both groups are also quite similar, suggesting that *the spread* of credit scores is not considerably different between the churned and not churned groups.
+
+- There might be a few outliers in both groups, but their presence seems to be more visible in churned customers.
+
+
+
 ```{r}
 ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
   geom_density(alpha = 0.5) +
