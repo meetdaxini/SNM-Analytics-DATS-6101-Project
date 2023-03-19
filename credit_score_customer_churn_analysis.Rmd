@@ -16,34 +16,99 @@ output:
 ---
 
 ```{r init, include=F}
-library(ezids)
 knitr::opts_chunk$set(warning = F, results = "hide", message = F)
 options(scientific = T, digits = 3)
+# Loading Required libraries
+library(ezids)
+library(tidyverse)
+library(ggplot2)
 ```
 
 ```{r}
-dataset <- data.frame(read.csv("Data.csv"))
+churn_data <- data.frame(read.csv("Data.csv"))
 ```
 
 ```{r}
-str(dataset)
+str(churn_data)
 ```
 
 ```{r}
-rows <- nrow(dataset)
-cols <- ncol(datset)
+rows <- nrow(churn_data)
+cols <- ncol(churn_data)
 ```
 
-Our data set has `{r rows}` observation and `{r cols}` variables
+Our data set has `{r rows}` observations and `{r cols}` variables
 
 
 ```{r}
-ezids::xkablesummary(dataset)
+xkablesummary(churn_data)
 ```
+
+```{r}
+na_count <- colSums(is.na(churn_data))
+
+if (all(na_count == 0)) {
+  cat("There are no missing values in the data set.\n")
+} else {
+  cat("There are some missing values in the data set.\n")
+}
+```
+As We don’t have any missing values in this data set, we don’t need to do anything extra to handle them. 
+
+As defined in our smart question, We only want to look at customers who have a positive balance as they are more valuable customers. We will filter out the data with zero balance.
+
+```{r}
+churn_data_filtered <- churn_data %>% filter(Balance > 0)
+filtered_rows <- nrow(churn_data_filtered)
+```
+The filtered data set excluding 0 balance has `{r filtered_rows}` observations
 
 
 
 ```{r}
-with_balance_dataset <- dataset[dataset$Balance > 0, ]
-str(with_balance_dataset)
+# Calculate summary statistics of CreditScore by Exited
+churn_credit_score_summary <- churn_data_filtered %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_credit_score = mean(CreditScore),
+    sd_credit_score = sd(CreditScore),
+    min_credit_score = min(CreditScore),
+    max_credit_score = max(CreditScore)
+  )
+
+# Print summary table
+xkabledply(churn_credit_score_summary)
+```
+
+### Churn Data Credit Score Summary
+
+The churn data credit score summary provides a comparison of the credit score statistics between customers who have churned (`Exited = 1`) and customers who have not churned (`Exited = 0`). The summary is calculated on the dataset that includes customers with a balance greater than zero and without removing any outliers. The summary consists of the following columns:
+
+- `Exited`: Churn status (0 for not churned, 1 for churned)
+- `mean_credit_score`: Mean credit score for each group
+- `sd_credit_score`: Standard deviation of credit scores for each group
+- `min_credit_score`: Minimum credit score for each group
+- `max_credit_score`: Maximum credit score for each group
+
+The summary table shows that the mean credit score is slightly higher for customers who have not churned (653) compared to customers who have churned (646). The standard deviation for credit scores is also slightly lower for customers who have not churned (95.8) than for customers who have churned (100). The minimum and maximum credit scores for both groups are quite similar, with the lowest credit score for the churned group being 350 and the highest credit score for both groups being 850. This suggests that there is some difference in the variability of credit scores between the two groups of customers. However, this difference may not be very significant or meaningful, as both groups have relatively high standard deviations compared to their mean credit scores. We will perform further analysis or use other measures to better understand how credit score affects customer churn.
+
+Lets also visualize the same on graphs. 
+
+
+```{r}
+ggplot(churn_data_filtered, aes(x = factor(Exited), y = CreditScore, fill = factor(Exited))) +
+  geom_boxplot() +
+  labs(x = "Churn Status (0 = Not Churned, 1 = Churned)", y = "Credit Score", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+```{r}
+ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution Density by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "(0 = Not Churned)", "1" = "(1 = Churned)"))
 ```
