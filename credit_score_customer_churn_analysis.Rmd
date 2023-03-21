@@ -37,7 +37,7 @@ rows <- nrow(churn_data)
 cols <- ncol(churn_data)
 ```
 
-Our data set has `{r rows}` observations and `{r cols}` variables
+Our data set has `r rows` observations and `r cols` variables
 
 
 ```{r}
@@ -61,7 +61,7 @@ As defined in our smart question, We only want to look at customers who have a p
 churn_data_filtered <- churn_data %>% filter(Balance > 0)
 filtered_rows <- nrow(churn_data_filtered)
 ```
-The filtered data set excluding 0 balance has `{r filtered_rows}` observations
+The filtered data set excluding zero balance has `r filtered_rows` observations
 
 
 
@@ -134,5 +134,104 @@ ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
   labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
   theme_minimal() +
   ggtitle("Credit Score Distribution Density by Churn Status") +
-  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "(0 = Not Churned)", "1" = "(1 = Churned)"))
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+The density plot for the given data displays the distribution of credit scores by churn status using smooth, continuous lines. The plot has two density curves:
+
+- **Customers who have not churned** (Exited = 0): shown in light green
+- **Customers who have churned** (Exited = 1): shown in indianred1
+
+The density plot illustrates the following key aspects:
+
+1. **The shape of the two density curves**: This shows how the credit scores are distributed for each group. Both curves appear to have a similar shape, with a single peak (unimodal) and a slightly right-skewed distribution.
+
+2. **The peaks of the density curves**: These represent the most common credit scores in each group. The peak for customers who have not churned is slightly higher than the peak for customers who have churned, indicating that there might be a small difference in the mode of the credit scores between the two groups.
+
+3. **The overlap between the density curves**: The considerable overlap between the two curves suggests that there is no clear separation in the distribution of credit scores between customers who have churned and those who have not churned. This indicates that credit score alone may not be a strong predictor of customer churn.
+
+In conclusion, the density plot shows that the distribution of credit scores for customers who have churned and those who have not churned is quite similar. Both groups have a single peak and a slightly right-skewed distribution. While there is a small difference in the mode of the credit scores between the two groups, the considerable overlap between the curves suggests that credit score alone may not be a strong indicator of whether a customer is likely to churn or not. May be removing the outliers would give us a more clearer picture.
+
+```{r}
+
+# Function to remove outliers using IQR method
+remove_outliers <- function(data, column_name) {
+  q1 <- quantile(data[[column_name]], 0.25)
+  q3 <- quantile(data[[column_name]], 0.75)
+  iqr <- q3 - q1
+  lower_bound <- q1 - 1.5 * iqr
+  upper_bound <- q3 + 1.5 * iqr
+  data_filtered <- data[data[[column_name]] >= lower_bound & data[[column_name]] <= upper_bound, ]
+  return(data_filtered)
+}
+
+# Remove outliers for CreditScore
+churn_data_no_outliers <- remove_outliers(churn_data_filtered, "CreditScore")
+```
+
+```{r}
+churn_credit_score_no_outliers_summary <- churn_data_no_outliers %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_credit_score = mean(CreditScore),
+    sd_credit_score = sd(CreditScore),
+    min_credit_score = min(CreditScore),
+    max_credit_score = max(CreditScore)
+  )
+
+xkabledply(churn_credit_score_no_outliers_summary)
+```
+```{r}
+ggplot(churn_data_no_outliers, aes(x = factor(Exited), y = CreditScore, fill = factor(Exited))) +
+  geom_boxplot() +
+  labs(x = "Churn Status (0 = Not Churned, 1 = Churned)", y = "Credit Score", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution by Churn Status (Outliers Removed)") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+```{r}
+ggplot(churn_data_no_outliers, aes(x = CreditScore, fill = factor(Exited))) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution Density by Churn Status (Outliers Removed)") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+Before removing outliers, the box plots and density plots for credit scores by churn status show:
+
+- A median credit score of 655 for customers who have not churned (Exited = 0) and 646 for customers who have churned (Exited = 1).
+- A wider interquartile range (IQR) for the churned group (Exited = 1) due to a higher standard deviation of 100.3 compared to 95.8 for the not churned group (Exited = 0).
+- Some possible outliers in the lower range of credit scores for the churned group (Exited = 1).
+- Considerable overlap between the density curves, suggesting credit score alone may not be a strong predictor of customer churn.
+
+After removing outliers, the updated box plots and density plots for credit scores by churn status show:
+
+- A median credit score that remains at 655 for customers who have not churned (Exited = 0) and slightly increases to 647 for customers who have churned (Exited = 1).
+- A slightly narrower IQR for the churned group (Exited = 1) due to a reduced standard deviation of 97.9 compared to the original 100.3.
+- Cleaner box plots without extreme values that might have distorted the distribution.
+- Overlap between the density curves still present, reinforcing the observation that credit score alone may not be a strong predictor of customer churn.
+
+
+
+```{r}
+# Function to calculate summary statistics
+summary_stats <- function(data, column_name, group_by_column) {
+  stats <- data %>%
+    group_by(!!sym(group_by_column)) %>%
+    summarize(
+      mean = mean(!!sym(column_name), na.rm = TRUE),
+      sd = sd(!!sym(column_name), na.rm = TRUE),
+      median = median(!!sym(column_name), na.rm = TRUE),
+      min = min(!!sym(column_name), na.rm = TRUE),
+      max = max(!!sym(column_name), na.rm = TRUE)
+    )
+  return(stats)
+}
+
+# Calculate summary statistics for credit scores by churn status
+credit_score_stats <- summary_stats(churn_data_no_outliers, "CreditScore", "Exited")
+xkabledply(summary_stats(churn_data_filtered, "CreditScore", "Exited"))
+xkabledply(credit_score_stats)
 ```
