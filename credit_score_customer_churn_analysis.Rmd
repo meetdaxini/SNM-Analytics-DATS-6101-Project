@@ -136,3 +136,28 @@ ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
   ggtitle("Credit Score Distribution Density by Churn Status") +
   scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "(0 = Not Churned)", "1" = "(1 = Churned)"))
 ```
+
+
+```{r}
+ggplot(churn_data_filtered, aes(x = CreditScore)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Credit Score Countplot", x = "Credit Score", y = "Count")
+```
+This is a Credit Score distribution for customers.
+
+```{r}
+ggplot(churn_data_filtered, aes(x = Geography)) +
+  geom_bar(fill = c("lightblue", "indianred", "lightgreen")) +
+  labs(title = "Customer vs Country", x = "Geography", y = "Count")
+```
+
+Most of the customers with a account balance greater than 0 orginate from france and germany which is double that of spain.
+
+```{r}
+ggplot(churn_data_filtered, aes(x = NumOfProducts)) +
+  geom_bar(fill = "lightgrey") +
+  labs(title = "Products owned by Customers", x = "products", y = "Count")
+```
+
+We can see that the majority of customers have 1 or 2 products, while relatively few customers have 3 or 4 products with a balance greater than 0.
+
