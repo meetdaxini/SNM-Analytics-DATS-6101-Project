@@ -140,7 +140,7 @@ ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
 
 ```{r}
 ggplot(churn_data_filtered, aes(x = CreditScore)) +
-  geom_bar(fill = "steelblue") +
+  geom_histogram(colour="black",fill = "lightblue") +
   labs(title = "Credit Score Countplot", x = "Credit Score", y = "Count")
 ```
 This is a Credit Score distribution for customers.
