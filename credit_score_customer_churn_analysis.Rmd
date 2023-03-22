@@ -15,6 +15,7 @@ output:
     toc_depth: '3'
 ---
 
+
 ```{r init, include=F}
 knitr::opts_chunk$set(warning = F, results = "hide", message = F)
 options(scientific = T, digits = 3)
@@ -24,8 +25,18 @@ library(tidyverse)
 library(ggplot2)
 ```
 
+## 1. Introduction
+
+In this project, we will perform exploratory data analysis on a churn modeling dataset obtained from Kaggle (https://www.kaggle.com/datasets/shubh0799/churn-modelling). Churn modeling is crucial for businesses as it helps identify factors that influence customer retention, enabling them to develop strategies to minimize churn and maintain profitability.
+
+The dataset contains customer data, including demographic and financial information, along with a churn indicator of a Bank. We will explore the dataset to understand the characteristics of the data, clean and prepare it for further analysis, and perform some statistical tests to draw insights.
+
+
+
 ```{r}
+# Load the dataset from csv
 churn_data <- data.frame(read.csv("Data.csv"))
+head(churn_data)
 ```
 
 ```{r}
@@ -37,12 +48,15 @@ rows <- nrow(churn_data)
 cols <- ncol(churn_data)
 ```
 
-Our data set has `{r rows}` observations and `{r cols}` variables
-
-
+Our data set has `r rows` observations and `r cols` variables
 ```{r}
+# Getting table summary
 xkablesummary(churn_data)
 ```
+
+## 2. Data Preprocessing And Cleaning
+
+Before we begin exploring the data, we are cleaning it up by removing unnecessary columns, checking for missing values and filtering out zero balance customers.
 
 ```{r}
 na_count <- colSums(is.na(churn_data))
@@ -55,19 +69,76 @@ if (all(na_count == 0)) {
 ```
 As We don’t have any missing values in this data set, we don’t need to do anything extra to handle them. 
 
-As defined in our smart question, We only want to look at customers who have a positive balance as they are more valuable customers. We will filter out the data with zero balance.
 
 ```{r}
-churn_data_filtered <- churn_data %>% filter(Balance > 0)
-filtered_rows <- nrow(churn_data_filtered)
+# Remove unnecessary columns
+churn_data_clean <- churn_data %>%
+  select(-RowNumber, -CustomerId, -Surname)
 ```
-The filtered data set excluding 0 balance has `{r filtered_rows}` observations
 
+We droped the variables RowNumber, CustomerId, and Surname, as they do not provide any valuable insights for our analysis.
+ 
+```{r}
+churn_data_clean <- churn_data %>% filter(Balance > 0)
+filtered_rows <- nrow(churn_data_clean)
+```
 
+We only want to look at customers who have a positive balance as they are more valuable customers.
+We removed customers with a zero balance, as they are not relevant to our analysis. The filtered data set excluding zero balance has `r filtered_rows` observations
+
+## 3. Data Exploration
+
+### Histograms and Boxplots
+We will create histograms and boxplots for the continuous numerical variables to understand the distribution and identify potential outliers.
+
+```{r}
+# List of continuous numerical variables
+numerical_vars <- c("CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary")
+
+# Create histograms and boxplots
+for (var in numerical_vars) {
+  p1 <- ggplot(churn_data_clean, aes_string(x = var)) +
+    geom_histogram(bins=30, fill = "steelblue", color = "black") +
+    labs(title = paste("Histogram of", var), x = var, y = "Frequency")
+
+  p2 <- ggplot(churn_data_clean, aes_string(x = "1", y = var)) +
+    stat_boxplot(geom = "errorbar") +
+    geom_boxplot(fill = "steelblue", color = "black") +
+    labs(title = paste("Boxplot of", var), x = "", y = var) +
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+  gridExtra::grid.arrange(p1, p2, ncol = 2)
+}
+```
+```{r}
+
+# Function to remove outliers using IQR method
+remove_outliers <- function(data, column_name) {
+  q1 <- quantile(data[[column_name]], 0.25)
+  q3 <- quantile(data[[column_name]], 0.75)
+  iqr <- q3 - q1
+  lower_bound <- q1 - 1.5 * iqr
+  upper_bound <- q3 + 1.5 * iqr
+  data_filtered <- data[data[[column_name]] >= lower_bound & data[[column_name]] <= upper_bound, ]
+  return(data_filtered)
+}
+
+# Remove outliers for CreditScore
+churn_data_clean <- remove_outliers(churn_data_clean, "CreditScore")
+churn_data_clean <- remove_outliers(churn_data_clean, "Age")
+churn_data_clean <- remove_outliers(churn_data_clean, "Balance")
+churn_data_clean <- remove_outliers(churn_data_clean, "NumOfProducts")
+```
+
+```{r}
+churn_data_clean
+```
+
+### Churn Data Credit Score Summary
 
 ```{r}
 # Calculate summary statistics of CreditScore by Exited
-churn_credit_score_summary <- churn_data_filtered %>%
+churn_credit_score_summary <- churn_data_clean %>%
   group_by(Exited) %>%
   summarize(
     mean_credit_score = mean(CreditScore),
@@ -80,7 +151,6 @@ churn_credit_score_summary <- churn_data_filtered %>%
 xkabledply(churn_credit_score_summary)
 ```
 
-### Churn Data Credit Score Summary
 
 The churn data credit score summary provides a comparison of the credit score statistics between customers who have churned (`Exited = 1`) and customers who have not churned (`Exited = 0`). The summary is calculated on the dataset that includes customers with a balance greater than zero and without removing any outliers. The summary consists of the following columns:
 
@@ -96,7 +166,7 @@ Lets also visualize the same on graphs.
 
 
 ```{r}
-ggplot(churn_data_filtered, aes(x = factor(Exited), y = CreditScore, fill = factor(Exited))) +
+ggplot(churn_data_clean, aes(x = factor(Exited), y = CreditScore, fill = factor(Exited))) +
   geom_boxplot() +
   labs(x = "Churn Status (0 = Not Churned, 1 = Churned)", y = "Credit Score", fill = "Churn Status") +
   theme_minimal() +
@@ -129,10 +199,124 @@ the two groups.
 
 
 ```{r}
-ggplot(churn_data_filtered, aes(x = CreditScore, fill = factor(Exited))) +
+ggplot(churn_data_clean, aes(x = CreditScore, fill = factor(Exited))) +
   geom_density(alpha = 0.5) +
   labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
   theme_minimal() +
   ggtitle("Credit Score Distribution Density by Churn Status") +
-  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "(0 = Not Churned)", "1" = "(1 = Churned)"))
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
 ```
+
+The density plot for the given data displays the distribution of credit scores by churn status using smooth, continuous lines. The plot has two density curves:
+
+- **Customers who have not churned** (Exited = 0): shown in light green
+- **Customers who have churned** (Exited = 1): shown in indianred1
+
+The density plot illustrates the following key aspects:
+
+1. **The shape of the two density curves**: This shows how the credit scores are distributed for each group. Both curves appear to have a similar shape, with a single peak (unimodal) and a slightly right-skewed distribution.
+
+2. **The peaks of the density curves**: These represent the most common credit scores in each group. The peak for customers who have not churned is slightly higher than the peak for customers who have churned, indicating that there might be a small difference in the mode of the credit scores between the two groups.
+
+3. **The overlap between the density curves**: The considerable overlap between the two curves suggests that there is no clear separation in the distribution of credit scores between customers who have churned and those who have not churned. This indicates that credit score alone may not be a strong predictor of customer churn.
+
+In conclusion, the density plot shows that the distribution of credit scores for customers who have churned and those who have not churned is quite similar. Both groups have a single peak and a slightly right-skewed distribution. While there is a small difference in the mode of the credit scores between the two groups, the considerable overlap between the curves suggests that credit score alone may not be a strong indicator of whether a customer is likely to churn or not. 
+
+
+## Hypothesis Testing
+
+### T-test on Credit Score and Churn
+
+We will perform an independent two-sample t-test to determine if there is a significant difference in the mean credit scores between customers who churned and those who did not churn.
+
+H0: The mean credit scores of churned customers and non-churned customers are equal.
+H1: The mean credit scores of churned customers and non-churned customers are not equal.
+
+```{r}
+churned <- churn_data_clean %>% filter(Exited == 1) %>% pull(CreditScore)
+non_churned <- churn_data_clean %>% filter(Exited == 0) %>% pull(CreditScore)
+
+ttest_result <- t.test(churned, non_churned)
+
+# Display t-test results
+ttest_result
+```
+
+```{r}
+if (ttest_result$p.value < 0.05) {
+  cat("Since the p-value =", ttest_result$p.value, "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores between churned and non-churned customers.")
+} else {
+  cat("Since the p-value =", ttest_result$p.value, "is greater than 0.05, we fail to reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are equal.")
+}
+```
+
+
+### One-way ANOVA on Number of Products
+
+We will perform a one-way ANOVA to determine if there is a significant difference in the mean credit scores among the different numbers of products held by customers.
+
+H0: The mean credit scores among the different numbers of products are equal.
+H1: At least one of the mean credit scores among the different numbers of products is not equal.
+
+```{r}
+anova_result <- aov(CreditScore ~ as.factor(NumOfProducts), data = churn_data)
+
+# Display ANOVA results
+summary(anova_result)
+
+if (summary(anova_result)[[1]][["Pr(>F)"]][1] < 0.05) {
+  cat("Since the p-value <", summary(anova_result)[[1]][["Pr(>F)"]][1], "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores among the different numbers of products held by customers.")
+} else {
+  cat("Since the p-value =", summary(anova_result)[[1]][["Pr(>F)"]][1], "is greater than 0.05, we fail to reject the null hypothesis. There is no significant difference in the mean credit scores among the different numbers of products held by customers.")
+}
+```
+
+
+## Categorizing Credit Score
+
+We will create categories for the CreditScore variable by dividing it into bins. Then, we will perform a one-way ANOVA test using the categorical CreditScore.
+
+```{r}
+# Create bins for CreditScore
+churn_data <- churn_data %>%
+  mutate(CreditScore_cat = cut(CreditScore, breaks = seq(350, 850, by = 125), include.lowest = TRUE, labels = c("Low", "Medium", "High", "Very High")))
+
+# Display the first few rows with the new categorical variable
+head(churn_data)
+```
+
+## One-way ANOVA on Categorical Credit Score
+
+We will perform a one-way ANOVA to determine if there is a significant difference in the mean balance among the different categories of credit scores.
+
+H0: The mean balances among the different categories of credit scores are equal.
+H1: At least one of the mean balances among the different categories of credit scores is not equal.
+
+```{r}
+anova_cat_result <- aov(Balance ~ CreditScore_cat, data = churn_data)
+
+# Display ANOVA results
+summary(anova_cat_result)
+```
+
+```{r}
+if (summary(anova_cat_result)[[1]][["Pr(>F)"]][1] < 0.05) {
+  cat("Since the p-value <", summary(anova_cat_result)[[1]][["Pr(>F)"]][1], "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean balances among the different categories of credit scores.")
+} else {
+  cat("Since the p-value =", summary(anova_cat_result)[[1]][["Pr(>F)"]][1], "is greater than 0.05, we fail to reject the null hypothesis. There is no significant difference in the mean balances among the different categories of credit scores.")
+}
+```
+
+The output of the one-way ANOVA test displays the following columns:
+
+**Df (Degrees of Freedom):** The degrees of freedom for each source of variance. In this case, we have two sources of variance: one for the categorical CreditScore variable (CreditScore_cat) and the other for the residuals (error term). CreditScore_cat has 3 degrees of freedom because there are 4 categories (Low, Medium, High, and Very High) and the degrees of freedom are calculated as the number of categories minus 1 (4 - 1 = 3). Residuals have 6369 degrees of freedom, which is the difference between the total number of observations (n) and the number of categories (k): n - k = 6373 - 4 = 6369.
+
+**Sum Sq (Sum of Squares):** The sum of squared deviations for each source of variance. CreditScore_cat has a sum of squares of 4.74e+08, which represents the between-group sum of squares. Residuals have a sum of squares of 5.77e+12, which represents the within-group sum of squares (or error sum of squares).
+
+**Mean Sq (Mean Squares):** The sum of squares divided by the degrees of freedom for each source of variance. CreditScore_cat has a mean square of 1.58e+08 (4.74e+08 / 3). Residuals have a mean square of 9.07e+08 (5.77e+12 / 6369).
+
+**F value:** The test statistic calculated as the ratio of the between-group mean square to the within-group mean square (1.58e+08 / 9.07e+08 = 0.17).
+
+**Pr(>F) (p-value):** The probability of observing an F value as extreme or more extreme than the calculated F value (0.17) under the null hypothesis. In this case, the p-value is 0.91.
+
+**Interpretation:** Since the p-value (0.91) is greater than the significance level (typically 0.05), we fail to reject the null hypothesis. This means that there is no significant difference in the mean balances among the different categories of credit scores (Low, Medium, High, and Very High).

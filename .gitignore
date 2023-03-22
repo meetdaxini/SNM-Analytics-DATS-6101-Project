@@ -3,6 +3,7 @@
 .Rhistory
 .RData
 .Ruserdata
+*.log
 
 # Mac specific files to ignore
 .DS_Store
