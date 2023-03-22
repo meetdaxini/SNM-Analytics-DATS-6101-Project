@@ -162,6 +162,32 @@ The churn data credit score summary provides a comparison of the credit score st
 
 The summary table shows that the mean credit score is slightly higher for customers who have not churned (653) compared to customers who have churned (646). The standard deviation for credit scores is also slightly lower for customers who have not churned (95.8) than for customers who have churned (100). The minimum and maximum credit scores for both groups are quite similar, with the lowest credit score for the churned group being 350 and the highest credit score for both groups being 850. This suggests that there is some difference in the variability of credit scores between the two groups of customers. However, this difference may not be very significant or meaningful, as both groups have relatively high standard deviations compared to their mean credit scores. We will perform further analysis or use other measures to better understand how credit score affects customer churn.
 
+```{r}
+ggplot(churn_data_clean, aes(x = Geography)) +
+  geom_bar(color="black",fill = c("lightblue", "indianred", "lightgreen")) +
+  labs(title = "Country Distribution", x = "Geography", y = "Count")
+```
+```{r}
+ggplot(churn_data_clean, aes(x = Gender)) +
+  geom_bar(color="black",fill = c("lightblue","lightgreen")) +
+  labs(title = "Gender Distribution", x = "Tenure", y = "Count")
+```
+```{r}
+ggplot(churn_data_clean, aes(x = HasCrCard)) +
+  geom_bar(color="black",fill = c("lightblue","orange")) +
+  labs(title = "Card  Distribution", x = "Card", y = "Count")
+```
+```{r}
+ggplot(churn_data_clean, aes(x = IsActiveMember)) +
+  geom_bar(color="black",fill = c("lightgrey","lightpink")) +
+  labs(title = "Active Member  Distribution", x = " Is Active Member", y = "Count")
+```
+```{r}
+ggplot(churn_data_clean, aes(x = Exited)) +
+  geom_bar(color="black",fill = c("lightblue","indianred")) +
+  labs(title = "Churn  Distribution", x = "Churn", y = "Count")
+```
+
 Lets also visualize the same on graphs. 
 
 
