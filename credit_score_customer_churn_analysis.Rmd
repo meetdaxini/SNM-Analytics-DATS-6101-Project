@@ -147,7 +147,7 @@ This is a Credit Score distribution for customers.
 
 ```{r}
 ggplot(churn_data_filtered, aes(x = Geography)) +
-  geom_bar(fill = c("lightblue", "indianred", "lightgreen")) +
+  geom_bar(color="black",fill = c("lightblue", "indianred", "lightgreen")) +
   labs(title = "Customer vs Country", x = "Geography", y = "Count")
 ```
 
@@ -161,3 +161,10 @@ ggplot(churn_data_filtered, aes(x = NumOfProducts)) +
 
 We can see that the majority of customers have 1 or 2 products, while relatively few customers have 3 or 4 products with a balance greater than 0.
 
+```{r}
+ggplot(churn_data_filtered, aes(x = Age)) +
+  geom_histogram(color="black",fill = "lightgreen") +
+  labs(title = "Age of the Customers", x = "Age", y = "Count")
+```
+
+We can see that the majority of customers are between 20 and 50 years old, while relatively few customers are younger than 20 or older than 70.
