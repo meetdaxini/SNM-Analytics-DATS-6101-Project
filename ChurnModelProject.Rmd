@@ -16,13 +16,15 @@ output:
 
 # 1.Introduction
 
-Banks want to keep as many active clients as possible. Consequently, businesses want to know if their clients' demands are being satisfied or whether they'd like to quit the organisation. If a bank thinks that a client is considering switching to another organization, the bank might take steps to persuade the client to stay.
+Churn modeling is crucial for businesses as it helps identify factors that influence customer retention, enabling them to develop strategies to minimize churn and maintain profitability.
+
+The dataset contains customer data, including demographic and financial information, along with a churn indicator of a Bank. These banks want to keep as many active clients as possible. Consequently, businesses want to know if their clients' demands are being satisfied or whether they'd like to quit the organization. If a bank thinks that a client is considering switching to another organization, the bank might take steps to persuade the client to stay. Dataset will be explored to understand the characteristics of the data, clean and prepare it for further analysis, and perform some statistical tests to draw insights.
 
 
 ![**Should I Stay or Should I Leave**](E:\Classes\Data Science\Mid-Term Project\Churn Model\Customer-Churn.png)
 
 
-The aim of this EDA is to find 'How does the distribution of credit score vary between customers who have churned and customers who have not churned, for customers with a balance greater than zero'. We are using dataset of bank clients from https://www.kaggle.com/ (@shubh0799).
+The aim of this EDA is to find 'How does the distribution of credit score vary between customers who have churned and customers who have not churned, for customers with a balance greater than zero' using dataset of bank clients from https://www.kaggle.com/ (@shubh0799).
 
 ### 1.1 More information
 
@@ -36,10 +38,13 @@ A continuous variable, credit score allows us to calculate its mean, median, mod
 **Import the required libraries into R.**
 
 ```{r, results='markup', warning=FALSE}
+# Loading libraries
 library(ezids)
 library(dplyr)
+library(tidyverse)
 library(readr)
 library(ggplot2)
+
 knitr::opts_chunk$set(warning = F, results = "hide", message = F)
 options(scientific=T, digits = 3) 
 ```
@@ -49,45 +54,31 @@ options(scientific=T, digits = 3)
 **Import the data into R.**
 
 ```{r, results='markup'}
-
-data <- read_csv("E:/Classes/Data Science/Mid-Term Project/Churn Model/Data.csv")
-
+# Load the dataset from csv
+data <- read_csv("Data.csv")
+head(data, n = 5)
+```
+```{r}
+# Rows and Col count
+rows <- nrow(data)
+cols <- ncol(data)
 ```
 
+
 There are **`r length(data)`** columns and every column in the dataset contains **`r nrow(data)`** data points.
+
+
+```{r}
+# Getting table summary
+xkablesummary(data)
+```
 
 # 3.Exploratory Data Analysis
 
 
 **We perform Exploratory Data Analysis or EDA to:**
 
-1.Understand dataset variables
-
-
-2.Cleaning dataset 
-
-
-3.Basic statistics
-
-  + mean, s.d., median, range
-
-
-4.Simple correlations and tests
-
-  + correlation matrix if applicable
-  + z-test, t-test, anova test if applicable
-
-
-5.Normality
-
-  + QQ-plot, boxplot, histogram
-
 ### 3.1 Understand dataset variables
-
-```{r}
-head(data, n = 5)
-ezids::xkablesummary(data)
-```
 
 VARIABLES | DESCRIPTION
 :-: | :-:
@@ -110,6 +101,8 @@ Exited | Target variable, flag, whether client left the bank or not
 
 ```{r}
 # Missing values in the dataset
+null_count <- colSums(is.na(data))
+
 cat("Missing values of RowNumber in the dataset:", sum(is.na(data$RowNumber)))
 cat("\nMissing values of CustomerId in the dataset:", sum(is.na(data$CustomerId)))
 cat("\nMissing values of Surname in the dataset:", sum(is.na(data$Surname)))
@@ -126,9 +119,20 @@ cat("\nMissing values of EstimatedSalary in the dataset:", sum(is.na(data$Estima
 cat("\nMissing values of Exited in the dataset:", sum(is.na(data$Exited)))
 ```
 
+The dataset contains 0 nulls.
+
+```{r}
+# Cleaning the dataset to remove unwanted variables
+
+clean_data <- data %>%
+  select(-RowNumber, -CustomerId, -Surname)
+```
+
+The selected variables(RowNumber, CustomerId, Surname) are removed from the dataset to gain more accurate insights on customer churn. 
+
 ```{r}
 # Aligning the data according to the variable 'balance' and 'excited'
-churn_data_filtered <- data %>%
+churn_data_filtered <- clean_data %>%
   filter(data$Balance > 0) %>%
   mutate(Churned = ifelse(Exited == 1, "Churned", "Not Churned"))
 
@@ -138,44 +142,144 @@ churned_data <- churn_data_filtered %>%
 not_churned_data <- churn_data_filtered %>%
   filter(Churned == "Not Churned")
 
+filter_rows <- nrow(churn_data_filtered)
 ```
 
+This EDA looks at customers whose balance is greater than 0, as they are of more value to the bank who should be retained. After cleaning the data, the number of observations are **`r filter_rows``**.
 
 ```{r}
-ggplot(data = churned_data, aes(x = CreditScore, fill = Churned)) +
+# Outliers are removed to analyze the dataset more accurately
+data_variables <- c("CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary")
+
+for (var in data_variables) {
+  p1 <- ggplot(churn_data_filtered, aes_string(x = var)) +
+    geom_histogram(bins=30, fill = "blue", color = "black") +
+    labs(title = paste("Histogram of", var), x = var, y = "Frequency")
+
+  p2 <- ggplot(churn_data_filtered, aes_string(x = "1", y = var)) +
+    stat_boxplot(geom = "errorbar") +
+    geom_boxplot(fill = "green", color = "black") +
+    labs(title = paste("Boxplot of", var), x = "", y = var) +
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+  gridExtra::grid.arrange(p1, p2, ncol = 2)
+}
+
+```
+
+```{r}
+# Remove Outliers
+
+no_credscore_out = outlierKD2(churn_data_filtered,CreditScore,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+no_age_out = outlierKD2(churn_data_filtered,Age,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+no_tenure_out = outlierKD2(churn_data_filtered,Tenure,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+no_bal_out = outlierKD2(churn_data_filtered,Balance,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+no_nop_out = outlierKD2(churn_data_filtered,NumOfProducts,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+no_estsal_out = outlierKD2(churn_data_filtered,EstimatedSalary,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+
+no_out_data <- c(no_credscore_out, no_age_out, no_tenure_out, no_bal_out, no_nop_out, no_estsal_out)
+```
+
+### 3.3 Basic statistics
+
+```{r}
+# Calculate summary statistics by Exited
+credit_score_summary <- churn_data_filtered %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_credit_score = mean(CreditScore),
+    sd_credit_score = sd(CreditScore),
+    min_credit_score = min(CreditScore),
+    max_credit_score = max(CreditScore)
+  )
+
+age_summary <- churn_data_filtered %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_age = mean(Age),
+    sd_age = sd(Age),
+    min_age = min(Age),
+    max_age = max(Age)
+  )
+
+bal_summary <- churn_data_filtered %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_bal = mean(Balance),
+    sd_bal = sd(Balance),
+    min_bal = min(Balance),
+    max_bal = max(Balance)
+  )
+
+estsal_summary <- churn_data_filtered %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_estsal = mean(EstimatedSalary),
+    sd_estsal = sd(EstimatedSalary),
+    min_estsal = min(EstimatedSalary),
+    max_estsal = max(EstimatedSalary)
+  )
+
+# Print summary table
+t1 <- xkabledply(credit_score_summary)
+t2 <-xkabledply(age_summary)
+t3 <-xkabledply(bal_summary)
+t4 <-xkabledply(estsal_summary)
+```
+Summary of Credit score, age, balance, estimated salary are: 
+`r t1`
+`r t2`
+`r t3`
+`r t4`
+
+The summary is calculated on the dataset that includes customers with a balance greater than zero and without removing any outliers. The summary consists of the following columns:
+
+- `Exited`: Churn status (0 for not churned, 1 for churned)
+- `mean_credit_score`: Mean credit score for each group
+- `sd_credit_score`: Standard deviation of credit scores for each group
+- `min_credit_score`: Minimum credit score for each group
+- `max_credit_score`: Maximum credit score for each group
+- `mean_age`: Mean age for each group
+- `sd_age`: Standard deviation of age for each group
+- `min_age`: Minimum age for each group
+- `max_age`: Maximum age for each group
+- `mean_bal`: Mean balance for each group
+- `sd_bal`: Standard deviation of balance for each group
+- `min_bal`: Minimum balance for each group
+- `max_bal`: Maximum balance for each group
+- `mean_estsal`: Mean estimated salary for each group
+- `sd_estsal`: Standard deviation of estimated salary for each group
+- `min_estsal`: Minimum estimated salary for each group
+- `max_estsal`: Maximum estimated salary for each group
+
+
+4.Simple correlations and tests
+
+  + correlation matrix if applicable
+  + z-test, t-test, anova test if applicable
+
+
+5.Normality
+
+  + QQ-plot, boxplot, histogram
+
+```{r}
+ggplot(churned_data, aes(x = CreditScore, fill = factor(Exited))) +
   geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+  scale_fill_manual(values = c("red", "black")) +
   labs(title = "Distribution of Credit Score for Churned Customers",
        x = "Credit Score",
        y = "Density") +
   theme_bw()
 
-ggplot(data = not_churned_data, aes(x = CreditScore, fill = Churned)) +
+ggplot(not_churned_data, aes(x = CreditScore, fill = factor(Exited))) +
   geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+  scale_fill_manual(values = c("blue", "black")) +
   labs(title = "Distribution of Credit Score for Not Churned Customers",
        x = "Credit Score",
        y = "Density") +
   theme_bw()
 
-```
-
-```{r}
-ggplot(data = churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
-
-ggplot(data = not_churned_data, aes(x = CreditScore, fill = Churned)) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Distribution of Credit Score for Not Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
 ```
 
 ```{r}
@@ -188,23 +292,24 @@ ggplot(data = churn_data_filtered, aes(x = Churned, y = CreditScore, fill = Chur
   theme_bw()
 ```
 
-### 3.3 Basic statistics
-
-```{r}
-
-```
-
 ### 3.4 Simple correlations and tests
 
-```{r}
+We will perform an independent two-sample t-test to determine if there is a significant difference in the mean credit scores between customers who churned and those who did not churn.
 
+H0: The mean credit scores of churned customers and non-churned customers are equal.
+H1: The mean credit scores of churned customers and non-churned customers are not equal.
+
+```{r}
+churned <- churned_data %>% pull(CreditScore)
+not_churned <- not_churned_data %>% pull(CreditScore)
+
+ttest_result <- t.test(churned, non_churned)
+
+# Display t-test results
+ttest_result
 ```
 
-### 3.5 Normality
-
-```{r}
-
-```
+Since the p-value `r ttest_result$p.value` is greater than 0.05, we fail to reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are equal.
 
 # 4.Conclusion
 
