@@ -56,12 +56,12 @@ options(scientific=T, digits = 3)
 ```{r, results='markup'}
 # Load the dataset from csv
 data <- read_csv("Data.csv")
-head(data, n = 5)
 ```
 ```{r}
 # Rows and Col count
 rows <- nrow(data)
 cols <- ncol(data)
+str(data)
 ```
 
 
@@ -74,7 +74,6 @@ xkablesummary(data)
 ```
 
 # 3.Exploratory Data Analysis
-
 
 **We perform Exploratory Data Analysis or EDA to:**
 
@@ -126,23 +125,15 @@ The dataset contains 0 nulls.
 
 clean_data <- data %>%
   select(-RowNumber, -CustomerId, -Surname)
+clean_data
 ```
 
 The selected variables(RowNumber, CustomerId, Surname) are removed from the dataset to gain more accurate insights on customer churn. 
 
 ```{r}
-# Aligning the data according to the variable 'balance' and 'excited'
-churn_data_filtered <- clean_data %>%
-  filter(data$Balance > 0) %>%
-  mutate(Churned = ifelse(Exited == 1, "Churned", "Not Churned"))
-
-churned_data <- churn_data_filtered %>%
-  filter(Churned == "Churned")
-
-not_churned_data <- churn_data_filtered %>%
-  filter(Churned == "Not Churned")
-
-filter_rows <- nrow(churn_data_filtered)
+# Aligning the data according to the variable 'balance'
+churn_data_filter <- clean_data %>% filter(data$Balance > 0)
+filter_rows <- nrow(churn_data_filter)
 ```
 
 This EDA looks at customers whose balance is greater than 0, as they are of more value to the bank who should be retained. After cleaning the data, the number of observations are **`r filter_rows``**.
@@ -152,13 +143,13 @@ This EDA looks at customers whose balance is greater than 0, as they are of more
 data_variables <- c("CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary")
 
 for (var in data_variables) {
-  p1 <- ggplot(churn_data_filtered, aes_string(x = var)) +
-    geom_histogram(bins=30, fill = "blue", color = "black") +
+  p1 <- ggplot(churn_data_filter, aes_string(x = var)) +
+    geom_histogram(bins=30, fill = "lightblue", color = "black") +
     labs(title = paste("Histogram of", var), x = var, y = "Frequency")
 
-  p2 <- ggplot(churn_data_filtered, aes_string(x = "1", y = var)) +
+  p2 <- ggplot(churn_data_filter, aes_string(x = "1", y = var)) +
     stat_boxplot(geom = "errorbar") +
-    geom_boxplot(fill = "green", color = "black") +
+    geom_boxplot(fill = "lightgreen", color = "black") +
     labs(title = paste("Boxplot of", var), x = "", y = var) +
     theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
@@ -170,21 +161,22 @@ for (var in data_variables) {
 ```{r}
 # Remove Outliers
 
-no_credscore_out = outlierKD2(churn_data_filtered,CreditScore,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-no_age_out = outlierKD2(churn_data_filtered,Age,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-no_tenure_out = outlierKD2(churn_data_filtered,Tenure,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-no_bal_out = outlierKD2(churn_data_filtered,Balance,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-no_nop_out = outlierKD2(churn_data_filtered,NumOfProducts,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-no_estsal_out = outlierKD2(churn_data_filtered,EstimatedSalary,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,CreditScore,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,Age,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,Tenure,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,Balance,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,NumOfProducts,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
+churn_data_filter = outlierKD2(churn_data_filter,EstimatedSalary,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
 
-no_out_data <- c(no_credscore_out, no_age_out, no_tenure_out, no_bal_out, no_nop_out, no_estsal_out)
+xkablesummary(no_out_data)
 ```
 
 ### 3.3 Basic statistics
 
 ```{r}
 # Calculate summary statistics by Exited
-credit_score_summary <- churn_data_filtered %>%
+
+credit_score_summary_no_out <- churn_data_filter %>%
   group_by(Exited) %>%
   summarize(
     mean_credit_score = mean(CreditScore),
@@ -193,7 +185,7 @@ credit_score_summary <- churn_data_filtered %>%
     max_credit_score = max(CreditScore)
   )
 
-age_summary <- churn_data_filtered %>%
+age_summary_no_out <- churn_data_filter %>%
   group_by(Exited) %>%
   summarize(
     mean_age = mean(Age),
@@ -202,7 +194,8 @@ age_summary <- churn_data_filtered %>%
     max_age = max(Age)
   )
 
-bal_summary <- churn_data_filtered %>%
+
+bal_summary_no_out <- churn_data_filter %>%
   group_by(Exited) %>%
   summarize(
     mean_bal = mean(Balance),
@@ -211,7 +204,7 @@ bal_summary <- churn_data_filtered %>%
     max_bal = max(Balance)
   )
 
-estsal_summary <- churn_data_filtered %>%
+estsal_summary_no_out <- churn_data_filter %>%
   group_by(Exited) %>%
   summarize(
     mean_estsal = mean(EstimatedSalary),
@@ -221,10 +214,15 @@ estsal_summary <- churn_data_filtered %>%
   )
 
 # Print summary table
-t1 <- xkabledply(credit_score_summary)
-t2 <-xkabledply(age_summary)
-t3 <-xkabledply(bal_summary)
-t4 <-xkabledply(estsal_summary)
+
+t1 <- xkabledply(credit_score_summary_no_out, title = "Credit Score Summary")
+
+t2 <-xkabledply(age_summary_no_out, title = "Age Summary")
+
+t3 <-xkabledply(bal_summary_no_out, title = "Balance Summary")
+
+t4 <-xkabledply(estsal_summary_no_out, title = "Estimated Salary Summary")
+
 ```
 Summary of Credit score, age, balance, estimated salary are: 
 `r t1`
@@ -252,6 +250,30 @@ The summary is calculated on the dataset that includes customers with a balance 
 - `min_estsal`: Minimum estimated salary for each group
 - `max_estsal`: Maximum estimated salary for each group
 
+```{r}
+ggplot(churn_data_filter, aes(x = CreditScore)) +
+  geom_histogram(colour="black",fill = "lightblue") +
+  labs(title = "Credit Score Countplot", x = "Credit Score", y = "Count")
+```
+
+```{r}
+ggplot(churn_data_filter, aes(x = Tenure)) +
+  geom_histogram(colour="black",fill = "lightblue") +
+  labs(title = "Tenure of customers", x = "Years", y = "Count")
+```
+
+```{r}
+ggplot(churn_data_filter, aes(x = Geography)) +
+  geom_histogram(colour="black",fill = c("lightgreen", "lightyellow", "lightblue"), stat="count") +
+  labs(title = "Customers in differnt locations", x = "Geography", y = "Count")
+```
+
+```{r}
+ggplot(churn_data_filter, aes(x = Gender)) +
+  geom_histogram(colour="black",fill = c("lightgreen", "lightyellow"), stat="count") +
+  labs(title = "Credit Score Countplot", x = "Credit Score", y = "Count")
+```
+
 
 4.Simple correlations and tests
 
@@ -264,32 +286,13 @@ The summary is calculated on the dataset that includes customers with a balance 
   + QQ-plot, boxplot, histogram
 
 ```{r}
-ggplot(churned_data, aes(x = CreditScore, fill = factor(Exited))) +
+ggplot(churn_data_filter, aes(x = CreditScore, fill = factor(Exited))) +
   geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("red", "black")) +
-  labs(title = "Distribution of Credit Score for Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
+  labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution Density by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "lightblue"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
 
-ggplot(not_churned_data, aes(x = CreditScore, fill = factor(Exited))) +
-  geom_density(alpha = 0.5) +
-  scale_fill_manual(values = c("blue", "black")) +
-  labs(title = "Distribution of Credit Score for Not Churned Customers",
-       x = "Credit Score",
-       y = "Density") +
-  theme_bw()
-
-```
-
-```{r}
-ggplot(data = churn_data_filtered, aes(x = Churned, y = CreditScore, fill = Churned)) +
-  geom_boxplot() +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
-  labs(title = "Comparison of Credit Score for Churned and Not Churned Customers",
-       x = "",
-       y = "Credit Score") +
-  theme_bw()
 ```
 
 ### 3.4 Simple correlations and tests
@@ -300,8 +303,8 @@ H0: The mean credit scores of churned customers and non-churned customers are eq
 H1: The mean credit scores of churned customers and non-churned customers are not equal.
 
 ```{r}
-churned <- churned_data %>% pull(CreditScore)
-not_churned <- not_churned_data %>% pull(CreditScore)
+churned <- churn_data_filter %>% filter(Exited == 1) %>% pull(CreditScore)
+not_churned <- churn_data_filter %>% filter(Exited == 0) %>% pull(CreditScore)
 
 ttest_result <- t.test(churned, not_churned)
 
@@ -311,23 +314,11 @@ ttest_result
 
 # 4.Conclusion
 
-Since the p-value `r ttest_result$p.value` is less than 0.05, we reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are not equal.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```{r}
+if (ttest_result$p.value < 0.05) {
+  cat("Since the p-value =", ttest_result$p.value, "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores between churned and non-churned customers.")
+} else {
+  cat("Since the p-value =", ttest_result$p.value, "is greater than 0.05, we fail to reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are equal.")
+}
+```
 
