@@ -131,7 +131,7 @@ churn_data_clean <- remove_outliers(churn_data_clean, "NumOfProducts")
 ```
 
 ```{r}
-churn_data_clean
+xkablesummary(churn_data_clean)
 ```
 
 ### Churn Data Credit Score Summary
@@ -161,32 +161,85 @@ The churn data credit score summary provides a comparison of the credit score st
 - `max_credit_score`: Maximum credit score for each group
 
 The summary table shows that the mean credit score is slightly higher for customers who have not churned (653) compared to customers who have churned (646). The standard deviation for credit scores is also slightly lower for customers who have not churned (95.8) than for customers who have churned (100). The minimum and maximum credit scores for both groups are quite similar, with the lowest credit score for the churned group being 350 and the highest credit score for both groups being 850. This suggests that there is some difference in the variability of credit scores between the two groups of customers. However, this difference may not be very significant or meaningful, as both groups have relatively high standard deviations compared to their mean credit scores. We will perform further analysis or use other measures to better understand how credit score affects customer churn.
+```{r}
+ggplot(churn_data_clean, aes(x = CreditScore)) +
+  geom_histogram(colour="black",fill = "lightblue") +
+  labs(title = "Credit Scores of Customers", x = "Credit Score", y = "Count")
+```
 
+The Histogram shows the distribution of Credit Score which has a range from 350 to 850 with a mean of 651. 
+
+```{r}
+ggplot(churn_data_clean, aes(x = Age)) +
+  geom_histogram(color="black",fill = "lightgreen") +
+  labs(title = "Age of the Customers", x = "Age", y = "Count")
+```
+The Histogram shows the distribution of age in the dataset we can see that majority of them fall under the age of 50.
+
+```{r}
+ggplot(churn_data_filtered, aes(x = Tenure)) +
+  geom_bar(color="black",fill = "yellow") +
+  labs(title = "Tenure of the Customers", x = "Tenure", y = "Count")
+sd(churn_data_clean$Tenure)
+```
+The Bar graph shows the tenure period of a customer in a company.Here we can see that they are equally distributed and they are ranging from 0 to 10 years.
+
+```{r}
+ggplot(churn_data_clean, aes(x = EstimatedSalary)) +
+  geom_histogram(color="black",fill = "steelblue") +
+  labs(title = "Estimated Salary of Customers", x = "Salary", y = "Count")
+```
+
+The Histogram shows the distribution of estimated salary of customers in the histogram.It is varying from 18 to 200,000 with the mean salary around 100,000.
+```{r}
+ggplot(churn_data_clean, aes(x = Balance)) +
+  geom_histogram(color="black",fill = "orange") +
+  labs(title = "Balance of Customers", x = "Balance", y = "Count")
+```
+
+Here is the Histogram for balance as we have removed customers with a balance of zero we can see that the range is from 3000 to 250,000.Most of them have a mean salary of 120,000.
+```{r}
+ggplot(churn_data_clean, aes(x = NumOfProducts)) +
+  geom_bar(color="black",fill = c("lightyellow", "red", "lightgreen","lightgrey")) +
+  labs(title = "Products owned by Customers", x = "products", y = "Count")
+```
+
+In the bar graph we show the number of products owned by customer.As we can see from the graph most of the customers own 1 or 2 products.
 ```{r}
 ggplot(churn_data_clean, aes(x = Geography)) +
   geom_bar(color="black",fill = c("lightblue", "indianred", "lightgreen")) +
   labs(title = "Country Distribution", x = "Geography", y = "Count")
 ```
+
+In the Distribution we can see that majority of the customers are from France and Germany.
 ```{r}
 ggplot(churn_data_clean, aes(x = Gender)) +
   geom_bar(color="black",fill = c("lightblue","lightgreen")) +
   labs(title = "Gender Distribution", x = "Tenure", y = "Count")
 ```
+
+From the graph, we can see that there are more male customers than female customers in the dataset.
 ```{r}
 ggplot(churn_data_clean, aes(x = HasCrCard)) +
   geom_bar(color="black",fill = c("lightblue","orange")) +
   labs(title = "Card  Distribution", x = "Card", y = "Count")
 ```
+
+From the bar graph we can see that most of the customers have a credit card from the distribution graph.
 ```{r}
 ggplot(churn_data_clean, aes(x = IsActiveMember)) +
   geom_bar(color="black",fill = c("lightgrey","lightpink")) +
   labs(title = "Active Member  Distribution", x = " Is Active Member", y = "Count")
 ```
+
+The distribution of active members and non active members in the dataset is similar but we can see that there are a few more active customers than inactive.
 ```{r}
 ggplot(churn_data_clean, aes(x = Exited)) +
   geom_bar(color="black",fill = c("lightblue","indianred")) +
   labs(title = "Churn  Distribution", x = "Churn", y = "Count")
 ```
+
+From the graph, we can see that the majority of customers in the dataset have not churned.
 
 Lets also visualize the same on graphs. 
 
