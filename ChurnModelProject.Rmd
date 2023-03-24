@@ -1,6 +1,6 @@
 ---
 title: "R Mid-term Project : Churn Model EDA"
-author: "SNM Analytics"
+author: "SNM Analytics(Navneeth)"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -125,7 +125,7 @@ The dataset contains 0 nulls.
 
 clean_data <- data %>%
   select(-RowNumber, -CustomerId, -Surname)
-clean_data
+str(clean_data)
 ```
 
 The selected variables(RowNumber, CustomerId, Surname) are removed from the dataset to gain more accurate insights on customer churn. 
@@ -167,8 +167,6 @@ churn_data_filter = outlierKD2(churn_data_filter,Tenure,rm = TRUE,boxplt = TRUE,
 churn_data_filter = outlierKD2(churn_data_filter,Balance,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
 churn_data_filter = outlierKD2(churn_data_filter,NumOfProducts,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
 churn_data_filter = outlierKD2(churn_data_filter,EstimatedSalary,rm = TRUE,boxplt = TRUE,histogram = TRUE,qqplt = T)
-
-xkablesummary(no_out_data)
 ```
 
 ### 3.3 Basic statistics
