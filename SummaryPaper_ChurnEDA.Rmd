@@ -333,36 +333,6 @@ ggplot(churn_data_clean, aes(x = Age, fill = factor(Exited))) +
 - The peak churn rate for churned customers occurs within the age range of **44 to 46 years**.
 - The age distribution of customers who did not churn has a taller peak, indicating a higher concentration of customers in a specific age range who are less likely to leave the bank.
 
-### Churn Data Credit Score Summary
-
-```{r}
-# Calculate summary statistics of CreditScore by Exited
-churn_credit_score_summary <- churn_data_clean %>%
-  group_by(Exited) %>%
-  summarize(
-    mean_credit_score = mean(CreditScore),
-    sd_credit_score = sd(CreditScore),
-    min_credit_score = min(CreditScore),
-    max_credit_score = max(CreditScore)
-  )
-
-# Print summary table
-xkabledply(churn_credit_score_summary)
-```
-
-
-The churn data credit score summary provides a comparison of the credit score statistics between customers who have churned (`Exited = 1`) and customers who have not churned (`Exited = 0`). The summary is calculated on the dataset that includes customers with a balance greater than zero and without removing any outliers. The summary consists of the following columns:
-
-- `Exited`: Churn status (0 for not churned, 1 for churned)
-- `mean_credit_score`: Mean credit score for each group
-- `sd_credit_score`: Standard deviation of credit scores for each group
-- `min_credit_score`: Minimum credit score for each group
-- `max_credit_score`: Maximum credit score for each group
-
-The summary table shows that the mean credit score is slightly higher for customers who have not churned (653) compared to customers who have churned (646). The standard deviation for credit scores is also slightly lower for customers who have not churned (95.8) than for customers who have churned (100). The minimum and maximum credit scores for both groups are quite similar, with the lowest credit score for the churned group being 350 and the highest credit score for both groups being 850. This suggests that there is some difference in the variability of credit scores between the two groups of customers. However, this difference may not be very significant or meaningful, as both groups have relatively high standard deviations compared to their mean credit scores. We will perform further analysis or use other measures to better understand how credit score affects customer churn.
-
-Lets also visualize the same on graphs. 
-
 ### Credit Score Distribution by Churn Status
 
 The box plot for the given data displays the distribution of credit scores by churn status. It has two box plots, one for customers who have not churned (`Exited = 0`) and one for customers who have churned (`Exited = 1`).
@@ -433,17 +403,16 @@ ttest_result <- t.test(churned, non_churned)
 ttest_result
 ```
 
-```{r}
-if (ttest_result$p.value < 0.05) {
-  cat("Since the p-value =", ttest_result$p.value, "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores between churned and non-churned customers.")
-} else {
-  cat("Since the p-value =", ttest_result$p.value, "is greater than 0.05, we fail to reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are equal.")
-}
-```
+The t-test aimed to determine if there was a significant difference in the mean credit scores between customers who churned and those who did not churn. The null hypothesis (H0) stated that the mean credit scores of churned customers and non-churned customers were equal, while the alternative hypothesis (H1) stated that they were not equal.
 
-### Categorizing Credit Score
+The t-test results showed a p-value of `r ttest_result$p.value`, which is greater than the 0.05 significance level. Therefore, we failed to reject the null hypothesis. This suggests that there is no significant difference in the mean credit scores between churned and non-churned customers.
 
-We will create categories for the CreditScore variable by dividing it into bins. Then, we will perform a one-way ANOVA test using the categorical CreditScore.
+
+
+### One-way ANOVA on Categorical Credit Score
+
+Next, we created categories for the CreditScore variable by dividing it into bins and performed a one-way ANOVA test. The test aimed to determine if there was a significant difference in the mean churn rate among the different categories of credit scores. The null hypothesis (H0) stated that the mean churn rates among the different categories of credit scores were equal, while the alternative hypothesis (H1) stated that at least one of the mean churn rates was not equal.
+
 
 ```{r}
 # Create bins for CreditScore
@@ -454,12 +423,6 @@ churn_data_clean <- churn_data_clean %>%
 head(churn_data_clean)
 ```
 
-### One-way ANOVA on Categorical Credit Score
-
-We will perform a one-way ANOVA to determine if there is a significant difference in the mean churn rate among the different categories of credit scores.
-
-H0: The mean churn rate among the different categories of credit scores are equal.
-H1: At least one of the mean churn rate among the different categories of credit scores is not equal.
 
 ```{r}
 # Create a new data frame with just churn and categorical credit scores
@@ -478,14 +441,8 @@ anova_result_churn <- aov(Exited ~ CreditScoreCat, data = churn_credit_score)
 summary(anova_result_churn)
 ```
 
-```{r}
-# Interpret the results
-if (summary(anova_result_churn)[[1]][["Pr(>F)"]][1] < 0.05) {
-  cat("Since the p-value =", summary(anova_result_churn)[[1]][["Pr(>F)"]][1], "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean churn rates among the different categories of credit scores.")
-} else {
-  cat("Since the p-value =", summary(anova_result_churn)[[1]][["Pr(>F)"]][1], "is greater than 0.05, we fail to reject the null hypothesis. There is no significant difference in the mean churn rates among the different categories of credit scores.")
-}
-```
+The one-way ANOVA test results showed a p-value of `r summary(anova_result_churn)[[1]][["Pr(>F)"]][1]`, which is greater than the 0.05 significance level. Thus, we failed to reject the null hypothesis. This indicates that there is no significant difference in the mean churn rates among the different categories of credit scores.
+
 
 ## Chapter 5: Conclusion
 
@@ -508,3 +465,5 @@ In conclusion, as the credit score shows a weak correlation with customer churn,
 Kaemingk, D. (2018, August 29). Reducing customer churn for banks and financial institutions. Qualtrics. Retrieved November 2, 2022
 
 Guliyev, H., & Yerdelen Tatoğlu, F. (2021). Customer churn analysis in banking sector: Evidence from explainable machine learning models. Journal of Applied Microeconometrics, 1(2), 85–99.
+
+Alsheref, F. K., Hussein, S. A., Abdelrahman, A. M., Abou el Kassem, E., & Mostafa, A. (2020) Customer Churn Prediction Model and Identifying Features to Increase Retention. (n.d.). Retrieved from https://thesai.org/Downloads/Volume11No5/Paper_67-Customer_Churn_Prediction_Model.pdf
