@@ -140,3 +140,100 @@ missing_values_by_year <- data %>%
 
 print(missing_values_by_year)
 ```
+
+
+
+```{r}
+data <- data %>% 
+  rename(tournament_id = tourney_id,
+         tournament_name = tourney_name,
+         tournament_level = tourney_level,
+         tournament_date = tourney_date,
+         winner_height = winner_ht,
+         winner_country = winner_ioc,
+         loser_height = loser_ht,
+         loser_country = loser_ioc,
+         winner_aces = w_ace,
+         winner_doublefaults = w_df,
+         winner_servepointswon = w_svpt,
+         winner_first_serve_in = w_1stIn,
+         winner_first_serve_won = w_1stWon,
+         winner_second_serve_won = w_2ndWon,
+         winner_service_games_held = w_SvGms,
+         winner_breakpoints_saved = w_bpSaved,
+         winner_breakpoints_faced = w_bpFaced,
+         loser_aces = l_ace,
+         loser_doublefaults = l_df,
+         loser_servepointswon = l_svpt,
+         loser_first_serve_in = l_1stIn,
+         loser_first_serve_won = l_1stWon,
+         loser_second_serve_won = l_2ndWon,
+         loser_service_games_held = l_SvGms,
+         loser_breakpoints_saved = l_bpSaved,
+         loser_breakpoints_faced = l_bpFaced)
+```
+
+
+```{r}
+summary(data)
+```
+
+```{r}
+# Define a custom color palette for the surfaces
+surface_colors <- c("Clay" = "#EB9694", 
+                    "Carpet" = "#FABE58", 
+                    "Grass" = "#87D37C", 
+                    "Hard" = "#5DADE2")
+
+# Create the bar chart with custom colors and adjusted font sizes
+ggplot(data, aes(x = surface, fill = surface)) + 
+  geom_bar(color = "black") +
+  scale_fill_manual(values = surface_colors) +
+  labs(title = "Total Matches Played on Various Surfaces Since 1991",
+       x = "Surface",
+       y = "Total Matches") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",
+        axis.title.x = element_text(margin = margin(t = 10), size = 12),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_line(colour = "gray90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 18, hjust = 0.5, color = "gray40"),
+        plot.caption = element_text(size = 14, hjust = 0, color = "gray40"),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))
+
+```
+
+Most of the matches played are on hard courts!
+
+```{r}
+# Filter out rows with missing winner_age and loser_age values
+filtered_data <- data %>%
+  filter(!is.na(winner_age) & !is.na(loser_age))
+
+# Create a density plot for winner_age and loser_age
+ggplot() +
+  geom_density(data = filtered_data, aes(x = winner_age, fill = "Winner"), alpha = 0.5) +
+  geom_density(data = filtered_data, aes(x = loser_age, fill = "Loser"), alpha = 0.5) +
+  labs(x = "Age", y = "Density", title = "Age Distribution of Winners and Losers", fill = "Role") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# Create a box plot for winner_age and loser_age
+winner_loser_age <- filtered_data %>%
+  select(winner_age, loser_age) %>%
+  gather(key = "Role", value = "Age", winner_age, loser_age)
+
+ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "Age", title = "Age Distribution of Winners and Losers") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
+
+```{r}
+
+```
