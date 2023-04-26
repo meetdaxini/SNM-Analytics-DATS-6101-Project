@@ -1,0 +1,510 @@
+---
+title: "Summary Paper: Customer Churn Analysis"
+author: "Team: SNM Analytics"
+# date: "today"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+```{r init, include=F}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(scientific = T, digits = 3)
+# Loading libraries
+library(ezids)
+library(dplyr)
+library(tidyverse)
+library(readr)
+library(ggplot2)
+```
+
+## Chapter 1: Introduction
+
+### Importance of Churn Modeling 
+
+The banking industry is one of the most competitive industries globally, and the sector's competition is only increasing. To remain competitive, banks must understand their customers' behavior and preferences to provide targeted and personalized services to retain their customer base.
+
+One of the challenges that banks face is customer churn, which refers to the loss of customers who switch to a competitor or terminate their relationship with the bank altogether. Customer churn can result from a variety of factors, such as poor customer service, high fees, unsuitable products, or a lack of personalized services.
+
+To mitigate the effects of customer churn, the banking industry has increasingly turned to churn modeling as a vital tool to identify the factors that influence customer retention. Churn modeling helps businesses identify key drivers of customer behavior, such as customer satisfaction, product usage, and demographic information, allowing them to develop targeted strategies to minimize churn and maintain profitability.
+
+### Background to the project
+
+The churn modeling dataset selected for this EDA provides a rich source of data for banks and researchers/students to develop and evaluate churn modeling algorithms. The dataset's features, such as demographics, transnational data, and customer churn status, provide valuable insights into the factors influencing customer behavior and preferences. For instance, the dataset contains information on customers' age, gender, location, credit score, account balance, credit card usage, and customer churn status. These features can help banks understand the underlying reasons for customer churn and develop targeted strategies to retain customers.
+
+In this project, we will perform exploratory data analysis on a churn modeling dataset obtained from Kaggle (https://www.kaggle.com/datasets/shubh0799/churn-modelling)to help identify factors that influence customer retention, enabling them to develop strategies to minimize churn and maintain profitability. Dataset is explored to understand the characteristics of the data, clean and prepare it for further analysis, and perform some statistical tests to draw insights.
+
+The main aim of this EDA is to answer the SMART question: 'How does the distribution of credit score vary between customers who have churned and customers who have not churned, for customers with a balance greater than zero'.
+
+Specific: We'll investigate credit score distribution among two distinct groups of customers: those who have churned and those who have not churned.
+
+Measurable: Aims to identify the extent of variation in the credit score distribution for two specific groups of customers with a balance greater than zero.
+
+Achievable:  The data can be sourced from bank’s databases.
+
+Relevant: The question addresses a vital business concern: identifying factors contributing to customer churn and retention, crucial for financial institutions' success.
+
+Time-bound: Analysis can be done within a defined timeframe to meet research objectives and inform timely decision-making.
+
+## Chapter 2: Dataset Description
+
+### Dataset analysis
+```{r}
+# Load the dataset from csv
+churn_data <- data.frame(read.csv("Data.csv"))
+#Calculate the number of rows and columns in the dataset
+rows <- nrow(churn_data)
+cols <- ncol(churn_data)
+#To check the structure of the dataset
+str(churn_data)
+```
+The study is based on the dataset that contains 10,000 observations of 14 variables (Refer to the above readout of the structure of the dataset.) The dataset has `r rows` observations and `r cols` variables.
+
+### Variables and its descriptions
+
+VARIABLES | DESCRIPTION
+:-: | :-:
+Rownumber | Unique ID for every row
+CustomerID | Unique ID for every client
+Surname | Client's surname
+CreditScore | Client's credit score
+Geography | Country of client's origin
+Gender | Client's gender
+Age | Client's age
+Tenure | Number of years for which the client has been with the bank
+Balance | Client's balance on account
+NumOfProducts | Number of client's products
+HasCrCard | Flag whether client has credit card or not
+IsActiveMember | Flag whether client is active member of bank or not
+EstimatedSalary | Client's annual estimated salary in euros
+Exited | Target variable, flag, whether client left the bank or not
+
+### Limitations of the dataset
+
+One of the limitations of the churn modeling dataset is that it is unclear whether the dataset is a simulated or real-world dataset. If the dataset is simulated, then the results obtained from the analysis may not be generalized to the real world.
+
+Limitation of the dataset is that it only contains information on bank customers, which may limit its applicability to other domains. Moreover, the dataset contains only 10,000 records, which may not be sufficient for training complex machine learning models.
+
+The dataset does not contain information on customer feedback or satisfaction, which may limit the ability to identify the underlying reasons for customer churn.
+
+### Related analysis on the dataset
+
+Several studies have used the dataset to develop and evaluate various machine learning models for predicting customer churn, including logistic regression, decision tree, random forest, and support vector machine. For instance, one study used the dataset to develop a predictive model for customer churn using various machine learning algorithms, including logistic regression, decision tree, random forest, and support vector machine. The study reported that the random forest algorithm outperformed other algorithms in terms of prediction accuracy, sensitivity, and specificity.
+
+## Chapter 3: Data Preprocessing And Cleaning
+
+In preparation for the EDA, data cleaning was done by removing unnecessary columns, checking for missing values and filtering out zero balance customers.
+
+### Checking for Missing Values
+
+The dataset is checked for NULL values using the inbuilt-function 'colSums(is.na())'
+
+```{r}
+na_count <- colSums(is.na(churn_data))
+
+if (all(na_count == 0)) {
+  cat("There are no missing values in the data set.\n")
+} else {
+  cat("There are some missing values in the data set.\n")
+}
+```
+Since there are no null values this data set, no additional step was taken to handle them. 
+
+### Dropping Irrelevant Variables
+```{r}
+# Remove unnecessary columns
+churn_data_clean <- churn_data %>%
+  select(-RowNumber, -CustomerId, -Surname)
+```
+
+We droped the variables RowNumber, CustomerId, and Surname, as they do not provide any valuable insights for our analysis.
+
+### Filtering Customers with Zero Balance 
+```{r}
+churn_data_clean <- churn_data %>% filter(Balance > 0)
+filtered_rows <- nrow(churn_data_clean)
+```
+
+We only want to look at customers who have a positive balance as they are more valuable customers.
+We removed customers with a zero balance, as they are not relevant to our analysis. The filtered data set excluding zero balance has `r filtered_rows` observations
+
+### Handling Outliers
+```{r}
+# Outliers are removed to analyze the dataset more accurately
+data_variables <- c("CreditScore", "Age", "Tenure", "Balance", "NumOfProducts", "EstimatedSalary")
+for (var in data_variables) {
+  p1 <- ggplot(churn_data_clean, aes_string(x = var)) +
+    geom_histogram(bins = 30, fill = "lightblue", color = "black") +
+    labs(title = paste("Histogram of", var), x = var, y = "Frequency")
+  p2 <- ggplot(churn_data_clean, aes_string(x = "1", y = var)) +
+    stat_boxplot(geom = "errorbar") +
+    geom_boxplot(fill = "lightgreen", color = "black") +
+    labs(title = paste("Boxplot of", var), x = "", y = var) +
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  gridExtra::grid.arrange(p1, p2, ncol = 2)
+}
+```
+```{r}
+# Getting table summary
+xkablesummary(churn_data)
+```
+
+```{r}
+# Remove Outliers
+churn_data_clean <- outlierKD2(churn_data_clean, CreditScore, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+churn_data_clean <- outlierKD2(churn_data_clean, Age, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+churn_data_clean <- outlierKD2(churn_data_clean, Tenure, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+churn_data_clean <- outlierKD2(churn_data_clean, Balance, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+churn_data_clean <- outlierKD2(churn_data_clean, NumOfProducts, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+churn_data_clean <- outlierKD2(churn_data_clean, EstimatedSalary, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
+```
+
+## Chapter 4: Data Exploration and EDA
+
+### 4.1 Data Exploration
+
+### Credit Score Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = CreditScore)) +
+  geom_histogram(colour = "black", fill = "lightblue") +
+  labs(title = "Credit Scores of Customers", x = "Credit Score", y = "Count")
+```
+
+The Histogram shows the distribution of Credit Score which has a range from 350 to 850 with a mean of 651. 
+
+### Age Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = Age)) +
+  geom_histogram(color = "black", fill = "lightgreen") +
+  labs(title = "Age of the Customers", x = "Age", y = "Count")
+```
+The Histogram shows the distribution of age in the dataset we can see that majority of them fall under the age of 50.
+
+### Tenure period of customers
+
+```{r}
+ggplot(churn_data_clean, aes(x = Tenure)) +
+  geom_bar(color = "black", fill = "yellow") +
+  labs(title = "Tenure of the Customers", x = "Tenure", y = "Count")
+sd(churn_data_clean$Tenure)
+```
+The Bar graph shows the tenure period of a customer in a company.Here we can see that they are equally distributed and they are ranging from 0 to 10 years.
+
+### Estimated salaries of the customers
+
+```{r}
+ggplot(churn_data_clean, aes(x = EstimatedSalary)) +
+  geom_histogram(color = "black", fill = "steelblue") +
+  labs(title = "Estimated Salary of Customers", x = "Salary", y = "Count")
+```
+
+The Histogram shows the distribution of estimated salary of customers in the histogram.It is varying from 18 to 200,000 with the mean salary around 100,000.
+
+### Balance Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = Balance)) +
+  geom_histogram(color = "black", fill = "orange") +
+  labs(title = "Balance of Customers", x = "Balance", y = "Count")
+```
+Here is the Histogram for balance as we have removed customers with a balance of zero we can see that the range is from 3000 to 250,000.Most of them have a mean salary of 120,000.
+
+### Number of Products Owned
+
+```{r}
+ggplot(churn_data_clean, aes(x = NumOfProducts)) +
+  geom_bar(color = "black", fill = c("lightyellow", "lightgreen", "lightgrey")) +
+  labs(title = "Products owned by Customers", x = "products", y = "Count")
+```
+In the bar graph we show the number of products owned by customer.As we can see from the graph most of the customers own 1 or 2 products.
+
+### Number of customers in different countries
+
+```{r}
+ggplot(churn_data_clean, aes(x = Geography)) +
+  geom_bar(color = "black", fill = c("lightblue", "indianred", "lightgreen")) +
+  labs(title = "Country Distribution", x = "Geography", y = "Count")
+```
+In the Distribution we can see that majority of the customers are from France and Germany.
+
+### Gender Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = Gender)) +
+  geom_bar(color = "black", fill = c("lightblue", "lightgreen")) +
+  labs(title = "Gender Distribution", x = "Tenure", y = "Count")
+```
+From the graph, we can see that there are more male customers than female customers in the dataset.
+
+### Number of credit card holders
+
+```{r}
+ggplot(churn_data_clean, aes(x = HasCrCard)) +
+  geom_bar(color = "black", fill = c("lightblue", "orange")) +
+  labs(title = "Card  Distribution", x = "Card", y = "Count")
+```
+From the bar graph we can see that most of the customers have a credit card from the distribution graph.
+
+### Active Status Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = IsActiveMember)) +
+  geom_bar(color = "black", fill = c("lightgrey", "lightpink")) +
+  labs(title = "Active Member  Distribution", x = " Is Active Member", y = "Count")
+```
+The distribution of active members and non active members in the dataset is similar but we can see that there are a few more active customers than inactive.
+
+### Churn Distribution
+
+```{r}
+ggplot(churn_data_clean, aes(x = Exited)) +
+  geom_bar(color = "black", fill = c("lightblue", "indianred")) +
+  labs(title = "Churn  Distribution", x = "Churn", y = "Count")
+```
+
+From the graph, we can see that the majority of customers in the dataset have not churned.
+
+### Churn Rate by Geography
+
+```{r}
+# Plot bar chart for churn rate by geography
+churn_geo <- churn_data_clean %>%
+  group_by(Geography, Exited) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count * 100 / sum(count))
+
+ggplot(churn_geo, aes(x = Geography, y = percentage, fill = factor(Exited))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned", "1" = "Churned")) +
+  labs(x = "Geography", y = "Percentage", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Churn Rate by Geography")
+options(dplyr.summarise.inform = FALSE)
+```
+
+- The churn rate is highest in **Germany** and lowest in **France**.
+- Customers from **Spain** have an intermediate churn rate.
+- Further exploration may be needed to identify factors that drive these regional differences (e.g., economic conditions, regional bank policies).
+
+### Churn Rate by Gender
+
+```{r}
+# Plot bar chart for churn rate by gender
+churn_gender <- churn_data_clean %>%
+  group_by(Gender, Exited) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count * 100 / sum(count))
+
+ggplot(churn_gender, aes(x = Gender, y = percentage, fill = factor(Exited))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned", "1" = "Churned")) +
+  labs(x = "Gender", y = "Percentage", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Churn Rate by Gender")
+```
+
+- The churn rate is higher among **Female** customers compared to **Male** customers.
+- This implies that female customers may be more sensitive to certain factors that contribute to churn.
+
+### Age Distribution by Churn Status
+
+```{r}
+# Plot density plot for age distribution by churn status
+ggplot(churn_data_clean, aes(x = Age, fill = factor(Exited))) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Age", y = "Density", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Age Distribution by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned", "1" = "Churned"))
+```
+
+- The age distribution of customers who churned is more spread out compared to the age distribution of those who did not churn.
+- The peak churn rate for churned customers occurs within the age range of **44 to 46 years**.
+- The age distribution of customers who did not churn has a taller peak, indicating a higher concentration of customers in a specific age range who are less likely to leave the bank.
+
+### Churn Data Credit Score Summary
+
+```{r}
+# Calculate summary statistics of CreditScore by Exited
+churn_credit_score_summary <- churn_data_clean %>%
+  group_by(Exited) %>%
+  summarize(
+    mean_credit_score = mean(CreditScore),
+    sd_credit_score = sd(CreditScore),
+    min_credit_score = min(CreditScore),
+    max_credit_score = max(CreditScore)
+  )
+
+# Print summary table
+xkabledply(churn_credit_score_summary)
+```
+
+
+The churn data credit score summary provides a comparison of the credit score statistics between customers who have churned (`Exited = 1`) and customers who have not churned (`Exited = 0`). The summary is calculated on the dataset that includes customers with a balance greater than zero and without removing any outliers. The summary consists of the following columns:
+
+- `Exited`: Churn status (0 for not churned, 1 for churned)
+- `mean_credit_score`: Mean credit score for each group
+- `sd_credit_score`: Standard deviation of credit scores for each group
+- `min_credit_score`: Minimum credit score for each group
+- `max_credit_score`: Maximum credit score for each group
+
+The summary table shows that the mean credit score is slightly higher for customers who have not churned (653) compared to customers who have churned (646). The standard deviation for credit scores is also slightly lower for customers who have not churned (95.8) than for customers who have churned (100). The minimum and maximum credit scores for both groups are quite similar, with the lowest credit score for the churned group being 350 and the highest credit score for both groups being 850. This suggests that there is some difference in the variability of credit scores between the two groups of customers. However, this difference may not be very significant or meaningful, as both groups have relatively high standard deviations compared to their mean credit scores. We will perform further analysis or use other measures to better understand how credit score affects customer churn.
+
+Lets also visualize the same on graphs. 
+
+### Credit Score Distribution by Churn Status
+
+The box plot for the given data displays the distribution of credit scores by churn status. It has two box plots, one for customers who have not churned (`Exited = 0`) and one for customers who have churned (`Exited = 1`).
+
+```{r}
+ggplot(churn_data_clean, aes(x = factor(Exited), y = CreditScore, fill = factor(Exited))) +
+  geom_boxplot() +
+  labs(x = "Churn Status (0 = Not Churned, 1 = Churned)", y = "Credit Score", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+Based on the box plot, we can make the following observations:
+
+- The median credit score for both groups (churned and not churned) is quite similar(around 650), indicating that there might not be a significant difference in *the central tendency* of credit scores between
+the two groups.
+
+- The overall range of credit scores and *the interquartile ranges* for both groups are also quite similar, suggesting that *the spread* of credit scores is not considerably different between the churned and not churned groups.
+
+
+### Credit Score Distribution by Churn Status
+
+```{r}
+ggplot(churn_data_clean, aes(x = CreditScore, fill = factor(Exited))) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Credit Score", y = "Density", fill = "Churn Status") +
+  theme_minimal() +
+  ggtitle("Credit Score Distribution Density by Churn Status") +
+  scale_fill_manual(values = c("0" = "lightgreen", "1" = "indianred1"), labels = c("0" = "Not Churned (0)", "1" = "Churned (1)"))
+```
+
+The density plot for the given data displays the distribution of credit scores by churn status using smooth, continuous lines. The plot has two density curves:
+
+- **Customers who have not churned** (Exited = 0): shown in light green
+- **Customers who have churned** (Exited = 1): shown in indianred1
+
+The density plot illustrates the following key aspects:
+
+1. **The shape of the two density curves**: This shows how the credit scores are distributed for each group. Both curves appear to have a similar shape, with a single peak (unimodal) and a slightly right-skewed distribution.
+
+2. **The peaks of the density curves**: These represent the most common credit scores in each group. The peak for customers who have not churned is slightly higher than the peak for customers who have churned, indicating that there might be a small difference in the mode of the credit scores between the two groups.
+
+3. **The overlap between the density curves**: The considerable overlap between the two curves suggests that there is no clear separation in the distribution of credit scores between customers who have churned and those who have not churned. This indicates that credit score alone may not be a strong predictor of customer churn.
+
+In conclusion, the density plot shows that the distribution of credit scores for customers who have churned and those who have not churned is quite similar. Both groups have a single peak and a slightly right-skewed distribution. While there is a small difference in the mode of the credit scores between the two groups, the considerable overlap between the curves suggests that credit score alone may not be a strong indicator of whether a customer is likely to churn or not. 
+
+### 4.2 Hypothesis Tests
+
+### T-test on Credit Score and Churn
+
+We will perform an independent two-sample t-test to determine if there is a significant difference in the mean credit scores between customers who churned and those who did not churn.
+
+H0: The mean credit scores of churned customers and non-churned customers are equal.
+H1: The mean credit scores of churned customers and non-churned customers are not equal.
+
+```{r}
+churned <- churn_data_clean %>%
+  filter(Exited == 1) %>%
+  pull(CreditScore)
+non_churned <- churn_data_clean %>%
+  filter(Exited == 0) %>%
+  pull(CreditScore)
+
+ttest_result <- t.test(churned, non_churned)
+
+# Display t-test results
+ttest_result
+```
+
+```{r}
+if (ttest_result$p.value < 0.05) {
+  cat("Since the p-value =", ttest_result$p.value, "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores between churned and non-churned customers.")
+} else {
+  cat("Since the p-value =", ttest_result$p.value, "is greater than 0.05, we fail to reject the null hypothesis. The mean credit scores of churned customers and non-churned customers are equal.")
+}
+```
+
+### Categorizing Credit Score
+
+We will create categories for the CreditScore variable by dividing it into bins. Then, we will perform a one-way ANOVA test using the categorical CreditScore.
+
+```{r}
+# Create bins for CreditScore
+churn_data_clean <- churn_data_clean %>%
+  mutate(CreditScoreCat = cut(CreditScore, breaks = seq(350, 850, by = 125), include.lowest = TRUE, labels = c("Low", "Medium", "High", "Very High")))
+
+# Display the first few rows with the new categorical variable
+head(churn_data_clean)
+```
+
+### One-way ANOVA on Categorical Credit Score
+
+We will perform a one-way ANOVA to determine if there is a significant difference in the mean churn rate among the different categories of credit scores.
+
+H0: The mean churn rate among the different categories of credit scores are equal.
+H1: At least one of the mean churn rate among the different categories of credit scores is not equal.
+
+```{r}
+# Create a new data frame with just churn and categorical credit scores
+churn_credit_score <- churn_data_clean %>%
+  select(Exited, CreditScoreCat)
+
+# Group by categorical credit score and calculate the mean churn rate
+churn_rate_by_credit_score <- churn_credit_score %>%
+  group_by(CreditScoreCat) %>%
+  summarise(MeanChurnRate = mean(Exited))
+
+# Perform the one-way ANOVA test
+anova_result_churn <- aov(Exited ~ CreditScoreCat, data = churn_credit_score)
+
+# Display ANOVA results
+summary(anova_result_churn)
+```
+
+```{r}
+# Interpret the results
+if (summary(anova_result_churn)[[1]][["Pr(>F)"]][1] < 0.05) {
+  cat("Since the p-value =", summary(anova_result_churn)[[1]][["Pr(>F)"]][1], "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean churn rates among the different categories of credit scores.")
+} else {
+  cat("Since the p-value =", summary(anova_result_churn)[[1]][["Pr(>F)"]][1], "is greater than 0.05, we fail to reject the null hypothesis. There is no significant difference in the mean churn rates among the different categories of credit scores.")
+}
+```
+
+## Chapter 5: Conclusion
+
+Our EDA provided insights into the impact of geography, gender, and age on customer churn:
+
+- Churn rate is higher in Germany and among female customers.
+- Churned customers tend to be in the 44-46 age range.
+
+Our S.M.A.R.T. question aimed to explore the relationship between credit scores and customer churn for customers with a balance greater than zero. 
+
+We conducted the following statistical tests to analyze this relationship:
+
+- A t-test comparing mean credit scores between churned and non-churned customers showed a p-value of 0.0546, suggesting a weak statistical significance.
+- Categorized credit scores and performed a one-way ANOVA test. Our findings indicate no significant difference in mean churn rates among the credit score categories.
+
+In conclusion, as the credit score shows a weak correlation with customer churn, it may not be a robust predictor on its own. Additional factors should be considered to better understand and address customer churn.
+
+## Chapter 6: References
+
+Kaemingk, D. (2018, August 29). Reducing customer churn for banks and financial institutions. Qualtrics. Retrieved November 2, 2022
+
+Guliyev, H., & Yerdelen Tatoğlu, F. (2021). Customer churn analysis in banking sector: Evidence from explainable machine learning models. Journal of Applied Microeconometrics, 1(2), 85–99.
