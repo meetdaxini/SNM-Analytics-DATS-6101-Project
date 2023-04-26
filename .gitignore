@@ -1,0 +1,18 @@
+# R specific files to ignore
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.log
+
+# Mac specific files to ignore
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE and text editor specific files to ignore
+.vscode/
+.idea/
+*.rproj
+*.rproj.user

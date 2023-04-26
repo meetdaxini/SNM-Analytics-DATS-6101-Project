@@ -1,0 +1,327 @@
+---
+title: "Tennis Match Outcome Predictions"
+author: "Team: SNM Analytics"
+# date: "today"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+
+```{r init, include=F}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(scientific = T, digits = 3)
+# Loading libraries
+library(ezids)
+library(dplyr)
+library(tidyverse)
+library(readr)
+library(ggplot2)
+```
+
+Introduction
+In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
+
+Our SMART Question:
+
+What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
+
+This question not only focuses on prediction accuracy but also emphasizes the importance of understanding which factors contribute the most to the outcome. By answering this question, you can gain insights into the game and potentially develop strategies for players or coaches to improve performance.
+
+
+```{r}
+# Initialize an empty data frame
+data <- data.frame()
+
+# Loop through the years and read the corresponding atp_matches files
+for (year in 1968:2023) {
+  file_path <- paste0("data/atp_matches_", year, ".csv")
+  
+  if (file.exists(file_path)) {
+    temp_data <- read.csv(file_path)
+    data <- rbind(data, temp_data)
+  }
+}
+```
+
+```{r}
+str(data)
+```
+```{r}
+# Convert tourney_date to a Date object
+data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
+```
+
+
+```{r}
+# Extract year from tourney_date
+data$year <- year(data$tourney_date)
+```
+
+
+```{r}
+# Select the relevant columns (numeric match statistics)
+stats_columns <- c("w_ace", "w_df", "w_svpt", "w_1stIn", "w_1stWon", "w_2ndWon", "w_SvGms", "w_bpSaved", "w_bpFaced",
+                   "l_ace", "l_df", "l_svpt", "l_1stIn", "l_1stWon", "l_2ndWon", "l_SvGms", "l_bpSaved", "l_bpFaced")
+
+```
+
+```{r}
+# Calculate the percentage of non-null values per year for each numeric variable
+non_null_stats <- data %>%
+  group_by(year) %>%
+  summarize(across(all_of(stats_columns), ~mean(!is.na(.)) * 100, .names = "pct_non_null_{col}"))
+```
+
+```{r}
+# Gather the data into a long format for easy plotting
+non_null_stats_long <- non_null_stats %>%
+  gather(key = "variable", value = "pct_non_null", -year)
+```
+
+```{r}
+# Plot the percentage of non-null values per year for each numeric variable
+ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Percentage of Non-Null Match Statistics per Year",
+       x = "Year",
+       y = "Percentage of Non-Null Values",
+       color = "Statistic") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(min(non_null_stats_long$year), max(non_null_stats_long$year), by = 5))
+
+
+```
+
+
+```{r}
+library(knitr)
+
+kable(non_null_stats, digits = 2)
+
+```
+
+The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
+statistics from the year 1968. Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
+
+```{r}
+data <- data %>% filter(year >= 1991)
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+# Analyze missing values in the dataset
+missing_values <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100)
+
+print(missing_values)
+```
+
+```{r}
+# Analyze missing values by year
+missing_values_by_year <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id, -year) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(year, variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100) 
+
+print(missing_values_by_year)
+```
+
+
+
+```{r}
+data <- data %>% 
+  rename(tournament_id = tourney_id,
+         tournament_name = tourney_name,
+         tournament_level = tourney_level,
+         tournament_date = tourney_date,
+         winner_height = winner_ht,
+         winner_country = winner_ioc,
+         loser_height = loser_ht,
+         loser_country = loser_ioc,
+         winner_aces = w_ace,
+         winner_doublefaults = w_df,
+         winner_servepointswon = w_svpt,
+         winner_first_serve_in = w_1stIn,
+         winner_first_serve_won = w_1stWon,
+         winner_second_serve_won = w_2ndWon,
+         winner_service_games_held = w_SvGms,
+         winner_breakpoints_saved = w_bpSaved,
+         winner_breakpoints_faced = w_bpFaced,
+         loser_aces = l_ace,
+         loser_doublefaults = l_df,
+         loser_servepointswon = l_svpt,
+         loser_first_serve_in = l_1stIn,
+         loser_first_serve_won = l_1stWon,
+         loser_second_serve_won = l_2ndWon,
+         loser_service_games_held = l_SvGms,
+         loser_breakpoints_saved = l_bpSaved,
+         loser_breakpoints_faced = l_bpFaced)
+```
+
+
+```{r}
+summary(data)
+```
+
+```{r}
+# Define a custom color palette for the surfaces
+surface_colors <- c("Clay" = "#EB9694", 
+                    "Carpet" = "#FABE58", 
+                    "Grass" = "#87D37C", 
+                    "Hard" = "#5DADE2")
+
+# Create the bar chart with custom colors and adjusted font sizes
+ggplot(data, aes(x = surface, fill = surface)) + 
+  geom_bar(color = "black") +
+  scale_fill_manual(values = surface_colors) +
+  labs(title = "Total Matches Played on Various Surfaces Since 1991",
+       x = "Surface",
+       y = "Total Matches") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",
+        axis.title.x = element_text(margin = margin(t = 10), size = 12),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_line(colour = "gray90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 18, hjust = 0.5, color = "gray40"),
+        plot.caption = element_text(size = 14, hjust = 0, color = "gray40"),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))
+
+```
+
+Most of the matches played are on hard courts!
+
+```{r}
+# Filter out rows with missing winner_age and loser_age values
+filtered_data <- data %>%
+  filter(!is.na(winner_age) & !is.na(loser_age))
+
+# Create a density plot for winner_age and loser_age
+ggplot() +
+  geom_density(data = filtered_data, aes(x = winner_age, fill = "Winner"), alpha = 0.5) +
+  geom_density(data = filtered_data, aes(x = loser_age, fill = "Loser"), alpha = 0.5) +
+  labs(x = "Age", y = "Density", title = "Age Distribution of Winners and Losers", fill = "Role") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# Create a box plot for winner_age and loser_age
+winner_loser_age <- filtered_data %>%
+  select(winner_age, loser_age) %>%
+  gather(key = "Role", value = "Age", winner_age, loser_age)
+
+ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "Age", title = "Age Distribution of Winners and Losers") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
+
+```{r}
+str(data)
+```
+
+```{r}
+filtered_data <- data %>%
+  mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
+         winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
+         loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
+         loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
+```
+
+```{r}
+filtered_data
+```
+
+```{r}
+# Prepare the data
+winner_loser_data <- filtered_data %>%
+  select(winner_first_serve_pct, loser_first_serve_pct) %>%
+  gather(key = "Role", value = "First Serve Win Percentage", winner_first_serve_pct, loser_first_serve_pct)
+
+# Create the box plot
+box_plot <- ggplot(winner_loser_data, aes(x = Role, y = `First Serve Win Percentage`, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "First Serve Win Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Display the box plot
+print(box_plot)
+
+```
+
+
+As expected winner first serve winning percentage is quite higher
+
+```{r}
+str(data)
+```
+
+```{r}
+data = data[sample(1:nrow(data)), ]
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+# Determine the number of rows in half the dataset
+half_nrow <- nrow(data) %/% 2
+
+# Split the dataset in half
+first_half <- data[1:half_nrow, ]
+second_half <- data[(half_nrow + 1):nrow(data), ]
+
+# Rename columns for the first half
+colnames(first_half)[grep("winner", colnames(first_half))] <- gsub("winner", "player0", colnames(first_half)[grep("winner", colnames(first_half))])
+colnames(first_half)[grep("loser", colnames(first_half))] <- gsub("loser", "player1", colnames(first_half)[grep("loser", colnames(first_half))])
+
+# Rename columns for the second half
+colnames(second_half)[grep("winner", colnames(second_half))] <- gsub("winner", "player1", colnames(second_half)[grep("winner", colnames(second_half))])
+colnames(second_half)[grep("loser", colnames(second_half))] <- gsub("loser", "player0", colnames(second_half)[grep("loser", colnames(second_half))])
+
+# Add 'winner' column to the first half and set it to 0 (player0 is the winner)
+first_half$winner <- 0
+
+# Add 'winner' column to the second half and set it to 1 (player1 is the winner)
+second_half$winner <- 1
+
+# Combine the two halves
+renamed_data <- rbind(first_half, second_half)
+```
+
+
+```{r}
+str(renamed_data)
+```
+

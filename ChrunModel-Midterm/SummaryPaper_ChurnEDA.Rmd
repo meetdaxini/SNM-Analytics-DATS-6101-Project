@@ -167,6 +167,14 @@ churn_data_clean <- outlierKD2(churn_data_clean, Balance, rm = TRUE, boxplt = TR
 churn_data_clean <- outlierKD2(churn_data_clean, NumOfProducts, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
 churn_data_clean <- outlierKD2(churn_data_clean, EstimatedSalary, rm = TRUE, boxplt = TRUE, histogram = TRUE, qqplt = T)
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+```{r}
+churn_data_clean <- na.omit(churn_data_clean)
+```
+
+We remove any missing values that are in the data set using the na.omit() function.
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ## Chapter 4: Data Exploration and EDA
 
@@ -180,7 +188,11 @@ ggplot(churn_data_clean, aes(x = CreditScore)) +
   labs(title = "Credit Scores of Customers", x = "Credit Score", y = "Count")
 ```
 
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 The Histogram shows the distribution of Credit Score which has a range from 350 to 850 with a mean of 651. 
+========
+The average credit score of the customer is 652 most of the customers having credit score fall between 600 to 700 and standard deviation is 96.3. The above histogram shows the range of credit scores.
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ### Age Distribution
 
@@ -189,8 +201,13 @@ ggplot(churn_data_clean, aes(x = Age)) +
   geom_histogram(color = "black", fill = "lightgreen") +
   labs(title = "Age of the Customers", x = "Age", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 The Histogram shows the distribution of age in the dataset we can see that majority of them fall under the age of 50.
 
+========
+
+The Histogram shows the distribution of age in the dataset we can see that majority of them fall under the age of 50 with average age 38.1 and standard deviation 8.8.
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 ### Tenure period of customers
 
 ```{r}
@@ -199,7 +216,12 @@ ggplot(churn_data_clean, aes(x = Tenure)) +
   labs(title = "Tenure of the Customers", x = "Tenure", y = "Count")
 sd(churn_data_clean$Tenure)
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 The Bar graph shows the tenure period of a customer in a company.Here we can see that they are equally distributed and they are ranging from 0 to 10 years.
+========
+
+The Bar graph shows the tenure period of a customer in a company.Here we can see that they are equally distributed and they are ranging from 0 to 10 years.From the graph we can see that most of the customers have stayed for more than one year.
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ### Estimated salaries of the customers
 
@@ -227,6 +249,10 @@ ggplot(churn_data_clean, aes(x = NumOfProducts)) +
   geom_bar(color = "black", fill = c("lightyellow", "lightgreen", "lightgrey")) +
   labs(title = "Products owned by Customers", x = "products", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 In the bar graph we show the number of products owned by customer.As we can see from the graph most of the customers own 1 or 2 products.
 
 ### Number of customers in different countries
@@ -236,6 +262,10 @@ ggplot(churn_data_clean, aes(x = Geography)) +
   geom_bar(color = "black", fill = c("lightblue", "indianred", "lightgreen")) +
   labs(title = "Country Distribution", x = "Geography", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 In the Distribution we can see that majority of the customers are from France and Germany.
 
 ### Gender Distribution
@@ -245,6 +275,10 @@ ggplot(churn_data_clean, aes(x = Gender)) +
   geom_bar(color = "black", fill = c("lightblue", "lightgreen")) +
   labs(title = "Gender Distribution", x = "Tenure", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 From the graph, we can see that there are more male customers than female customers in the dataset.
 
 ### Number of credit card holders
@@ -254,6 +288,10 @@ ggplot(churn_data_clean, aes(x = HasCrCard)) +
   geom_bar(color = "black", fill = c("lightblue", "orange")) +
   labs(title = "Card  Distribution", x = "Card", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 From the bar graph we can see that most of the customers have a credit card from the distribution graph.
 
 ### Active Status Distribution
@@ -263,6 +301,10 @@ ggplot(churn_data_clean, aes(x = IsActiveMember)) +
   geom_bar(color = "black", fill = c("lightgrey", "lightpink")) +
   labs(title = "Active Member  Distribution", x = " Is Active Member", y = "Count")
 ```
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 The distribution of active members and non active members in the dataset is similar but we can see that there are a few more active customers than inactive.
 
 ### Churn Distribution
@@ -333,6 +375,7 @@ ggplot(churn_data_clean, aes(x = Age, fill = factor(Exited))) +
 - The peak churn rate for churned customers occurs within the age range of **44 to 46 years**.
 - The age distribution of customers who did not churn has a taller peak, indicating a higher concentration of customers in a specific age range who are less likely to leave the bank.
 
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 ### Churn Data Credit Score Summary
 
 ```{r}
@@ -363,6 +406,8 @@ The summary table shows that the mean credit score is slightly higher for custom
 
 Lets also visualize the same on graphs. 
 
+========
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 ### Credit Score Distribution by Churn Status
 
 The box plot for the given data displays the distribution of credit scores by churn status. It has two box plots, one for customers who have not churned (`Exited = 0`) and one for customers who have churned (`Exited = 1`).
@@ -433,6 +478,7 @@ ttest_result <- t.test(churned, non_churned)
 ttest_result
 ```
 
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 ```{r}
 if (ttest_result$p.value < 0.05) {
   cat("Since the p-value =", ttest_result$p.value, "is less than 0.05, we reject the null hypothesis. There is a significant difference in the mean credit scores between churned and non-churned customers.")
@@ -444,6 +490,18 @@ if (ttest_result$p.value < 0.05) {
 ### Categorizing Credit Score
 
 We will create categories for the CreditScore variable by dividing it into bins. Then, we will perform a one-way ANOVA test using the categorical CreditScore.
+========
+The t-test aimed to determine if there was a significant difference in the mean credit scores between customers who churned and those who did not churn. The null hypothesis (H0) stated that the mean credit scores of churned customers and non-churned customers were equal, while the alternative hypothesis (H1) stated that they were not equal.
+
+The t-test results showed a p-value of `r ttest_result$p.value`, which is greater than the 0.05 significance level. Therefore, we failed to reject the null hypothesis. This suggests that there is no significant difference in the mean credit scores between churned and non-churned customers.
+
+
+
+### One-way ANOVA on Categorical Credit Score
+
+Next, we created categories for the CreditScore variable by dividing it into bins and performed a one-way ANOVA test. The test aimed to determine if there was a significant difference in the mean churn rate among the different categories of credit scores. The null hypothesis (H0) stated that the mean churn rates among the different categories of credit scores were equal, while the alternative hypothesis (H1) stated that at least one of the mean churn rates was not equal.
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ```{r}
 # Create bins for CreditScore
@@ -454,12 +512,15 @@ churn_data_clean <- churn_data_clean %>%
 head(churn_data_clean)
 ```
 
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 ### One-way ANOVA on Categorical Credit Score
 
 We will perform a one-way ANOVA to determine if there is a significant difference in the mean churn rate among the different categories of credit scores.
 
 H0: The mean churn rate among the different categories of credit scores are equal.
 H1: At least one of the mean churn rate among the different categories of credit scores is not equal.
+========
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ```{r}
 # Create a new data frame with just churn and categorical credit scores
@@ -478,6 +539,7 @@ anova_result_churn <- aov(Exited ~ CreditScoreCat, data = churn_credit_score)
 summary(anova_result_churn)
 ```
 
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
 ```{r}
 # Interpret the results
 if (summary(anova_result_churn)[[1]][["Pr(>F)"]][1] < 0.05) {
@@ -486,6 +548,10 @@ if (summary(anova_result_churn)[[1]][["Pr(>F)"]][1] < 0.05) {
   cat("Since the p-value =", summary(anova_result_churn)[[1]][["Pr(>F)"]][1], "is greater than 0.05, we fail to reject the null hypothesis. There is no significant difference in the mean churn rates among the different categories of credit scores.")
 }
 ```
+========
+The one-way ANOVA test results showed a p-value of `r summary(anova_result_churn)[[1]][["Pr(>F)"]][1]`, which is greater than the 0.05 significance level. Thus, we failed to reject the null hypothesis. This indicates that there is no significant difference in the mean churn rates among the different categories of credit scores.
+
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
 
 ## Chapter 5: Conclusion
 
@@ -508,3 +574,8 @@ In conclusion, as the credit score shows a weak correlation with customer churn,
 Kaemingk, D. (2018, August 29). Reducing customer churn for banks and financial institutions. Qualtrics. Retrieved November 2, 2022
 
 Guliyev, H., & Yerdelen Tatoğlu, F. (2021). Customer churn analysis in banking sector: Evidence from explainable machine learning models. Journal of Applied Microeconometrics, 1(2), 85–99.
+<<<<<<<< HEAD:ChrunModel-Midterm/SummaryPaper_ChurnEDA.Rmd
+========
+
+Alsheref, F. K., Hussein, S. A., Abdelrahman, A. M., Abou el Kassem, E., & Mostafa, A. (2020) Customer Churn Prediction Model and Identifying Features to Increase Retention. (n.d.). Retrieved from https://thesai.org/Downloads/Volume11No5/Paper_67-Customer_Churn_Prediction_Model.pdf
+>>>>>>>> ecc20d36f01340e36f83755998117d53c3c6f0c5:credit_score_customer_churn_analysis/SummaryPaper_ChurnEDA.Rmd
