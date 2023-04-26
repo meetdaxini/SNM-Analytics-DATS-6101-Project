@@ -14,17 +14,231 @@ knitr::opts_chunk$set(echo = TRUE)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+# Initialize an empty data frame
+data <- data.frame()
+# Loop through the years and read the corresponding atp_matches files
+for (year in 1968:2023) {
+  file_path <- paste0("data/atp_matches_", year, ".csv")
+  
+  if (file.exists(file_path)) {
+    temp_data <- read.csv(file_path)
+    data <- rbind(data, temp_data)
+  }
+}
+```
+```{r}
+str(data)
+  
+```
+```{r}
+# Print the head of the dataframe
+print(head(data))
+```
+```{r}
 
-```{r cars}
-summary(cars)
+summary(data)
+
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+# Drop columns using subset() function
+df <- subset(data, select = -c(tourney_id, tourney_date, score))
+```
+```{r}
+str(df)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+
+# Extract categorical variables
+df_categorical <- df[, sapply(df, is.factor)]
+
+# Extract numerical variables
+df_numerical <- df[, sapply(df, is.numeric)]
+
+```
+
+```{r}
+str(df_numerical)
+```
+
+```{r}
+# Drop rows with missing values in df_categorical
+df_categorical <- df_categorical[complete.cases(df_categorical), ]
+
+# Drop rows with missing values in df_numerical
+df_numerical <- df_numerical[complete.cases(df_numerical), ]
+
+```
+
+```{r}
+str(df_numerical)
+```
+
+```{r}
+# Check for missing values in df
+na_counts <- colSums(is.na(df_numerical))
+
+# Display column-wise counts of missing values
+print(na_counts)
+
+```
+```{r}
+head(data)
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+# Convert tourney_date to a Date object
+data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
+# Extract year from tourney_date
+data$year <- year(data$tourney_date)
+
+```
+
+```{r}
+summary(data$year)
+```
+
+```{r}
+# Select the relevant columns (numeric match statistics)
+stats_columns <- c("w_ace", "w_df", "w_svpt", "w_1stIn", "w_1stWon", "w_2ndWon", "w_SvGms", "w_bpSaved", "w_bpFaced",
+                   "l_ace", "l_df", "l_svpt", "l_1stIn", "l_1stWon", "l_2ndWon", "l_SvGms", "l_bpSaved", "l_bpFaced")
+
+```
+
+```{r}
+# Calculate the percentage of non-null values per year for each numeric variable
+non_null_stats <- data %>%
+  group_by(year) %>%
+  summarize(across(all_of(stats_columns), ~mean(!is.na(.)) * 100, .names = "pct_non_null_{col}"))
+
+```
+
+```{r}
+# Gather the data into a long format for easy plotting
+non_null_stats_long <- non_null_stats %>%
+  gather(key = "variable", value = "pct_non_null", -year)
+
+```
+
+```{r}
+# Plot the percentage of non-null values per year for each numeric variable
+ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Percentage of Non-Null Match Statistics per Year",
+       x = "Year",
+       y = "Percentage of Non-Null Values",
+       color = "Statistic") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(min(non_null_stats_long$year), max(non_null_stats_long$year), by = 5))
+
+```
+
+
+```{r}
+library(knitr)
+kable(non_null_stats, digits = 2)
+
+```
+
+The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
+statistics from the year 1968. Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
+
+```{r}
+data <- data %>% filter(year >= 1991)
+
+```
+
+#DO THE subsets of categorical and numerical
+
+```{r}
+data <- subset(data, select = -c(tourney_id, tourney_date, score))
+```
+
+```{r}
+players <-data[, c('winner_id', 'winner_name', 'loser_id', 'loser_name')]
+```
+
+```{r}
+data <-subset(data,select = -c(winner_id, winner_name, loser_id, loser_name))
+```
+
+# Convert specified columns to factors
+```{r}
+# Convert specified columns to factors
+data$tourney_name <- as.factor(data$tourney_name)
+data$surface <- as.factor(data$surface)
+data$tourney_level <- as.factor(data$tourney_level)
+data$winner_seed <- as.factor(data$winner_seed)
+data$winner_entry <- as.factor(data$winner_entry)
+data$winner_name <- as.factor(data$winner_name)
+data$winner_hand <- as.factor(data$winner_hand)
+data$winner_ioc <- as.factor(data$winner_ioc)
+data$loser_seed <- as.factor(data$loser_seed)
+data$loser_entry <- as.factor(data$loser_entry)
+data$loser_name <- as.factor(data$loser_name)
+data$loser_hand <- as.factor(data$loser_hand)
+data$round <- as.factor(data$round)
+```
+
+```{r}
+# Drop rows with NA values from the data frame
+data <- na.omit(data)
+
+```
+
+```{r}
+str(data)
+```
+#CHECK FOR NULLS AGAIN
+```{r}
+# Check for NA values in the data frame
+na_indices <- is.na(data)
+
+# Count the number of NA values in each column
+na_counts <- colSums(na_indices)
+
+# Display the NA counts
+print(na_counts)
+
+```
+
+
+
+
+```{r}
+# Analyze missing values in the dataset
+missing_values <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100)
+
+print(missing_values)
+
+```
+
+```{r}
+# Analyze missing values by year
+missing_values_by_year <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id, -year) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(year, variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100) 
+print(missing_values_by_year)
+
+```
