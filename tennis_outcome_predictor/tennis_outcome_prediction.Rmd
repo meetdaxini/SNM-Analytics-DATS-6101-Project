@@ -31,6 +31,13 @@ library(ggplot2)
 Introduction
 In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
 
+Our SMART Question:
+
+What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
+
+This question not only focuses on prediction accuracy but also emphasizes the importance of understanding which factors contribute the most to the outcome. By answering this question, you can gain insights into the game and potentially develop strategies for players or coaches to improve performance.
+
+
 ```{r}
 # Initialize an empty data frame
 data <- data.frame()
@@ -52,7 +59,10 @@ str(data)
 ```{r}
 # Convert tourney_date to a Date object
 data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
+```
 
+
+```{r}
 # Extract year from tourney_date
 data$year <- year(data$tourney_date)
 ```
@@ -235,5 +245,83 @@ ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
 age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
 
 ```{r}
+str(data)
+```
+
+```{r}
+filtered_data <- data %>%
+  mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
+         winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
+         loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
+         loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
+```
+
+```{r}
+filtered_data
+```
+
+```{r}
+# Prepare the data
+winner_loser_data <- filtered_data %>%
+  select(winner_first_serve_pct, loser_first_serve_pct) %>%
+  gather(key = "Role", value = "First Serve Win Percentage", winner_first_serve_pct, loser_first_serve_pct)
+
+# Create the box plot
+box_plot <- ggplot(winner_loser_data, aes(x = Role, y = `First Serve Win Percentage`, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "First Serve Win Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Display the box plot
+print(box_plot)
 
 ```
+
+
+As expected winner first serve winning percentage is quite higher
+
+```{r}
+str(data)
+```
+
+```{r}
+data = data[sample(1:nrow(data)), ]
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+# Determine the number of rows in half the dataset
+half_nrow <- nrow(data) %/% 2
+
+# Split the dataset in half
+first_half <- data[1:half_nrow, ]
+second_half <- data[(half_nrow + 1):nrow(data), ]
+
+# Rename columns for the first half
+colnames(first_half)[grep("winner", colnames(first_half))] <- gsub("winner", "player0", colnames(first_half)[grep("winner", colnames(first_half))])
+colnames(first_half)[grep("loser", colnames(first_half))] <- gsub("loser", "player1", colnames(first_half)[grep("loser", colnames(first_half))])
+
+# Rename columns for the second half
+colnames(second_half)[grep("winner", colnames(second_half))] <- gsub("winner", "player1", colnames(second_half)[grep("winner", colnames(second_half))])
+colnames(second_half)[grep("loser", colnames(second_half))] <- gsub("loser", "player0", colnames(second_half)[grep("loser", colnames(second_half))])
+
+# Add 'winner' column to the first half and set it to 0 (player0 is the winner)
+first_half$winner <- 0
+
+# Add 'winner' column to the second half and set it to 1 (player1 is the winner)
+second_half$winner <- 1
+
+# Combine the two halves
+renamed_data <- rbind(first_half, second_half)
+```
+
+
+```{r}
+str(renamed_data)
+```
+
