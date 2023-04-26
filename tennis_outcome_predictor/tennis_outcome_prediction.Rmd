@@ -140,6 +140,7 @@ missing_values <- data %>%
 print(missing_values)
 ```
 
+
 ```{r}
 # Analyze missing values by year
 missing_values_by_year <- data %>%
@@ -323,5 +324,190 @@ renamed_data <- rbind(first_half, second_half)
 
 ```{r}
 str(renamed_data)
+```
+
+```{r}
+# Replace 'tennis_data' with the name of your data frame
+# write.csv(renamed_data, "tennis_data.csv", row.names = FALSE)
+```
+
+```{r}
+final_data = renamed_data
+```
+
+```{r}
+ncol(final_data)
+```
+
+```{r}
+final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
+```
+
+```{r}
+tennis_data_clean <- final_data %>%
+  select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
+```
+
+```{r}
+ncol(tennis_data_clean)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+
+```{r}
+# Serve percentage difference
+tennis_data_clean$first_serve_pct_diff <- (tennis_data_clean$player0_first_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_first_serve_won / tennis_data_clean$player1_first_serve_in)
+
+# tennis_data_clean$second_serve_pct_diff <- (tennis_data_clean$player0_second_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_second_serve_won / tennis_data_clean$player1_first_serve_in)
+tennis_data_clean$breakpoint_save_pct_diff <- with(tennis_data_clean, 
+    ifelse(player0_breakpoints_faced == 0, 0, player0_breakpoints_saved / player0_breakpoints_faced) -
+    ifelse(player1_breakpoints_faced == 0, 0, player1_breakpoints_saved / player1_breakpoints_faced)
+)
+
+
+# Calculate the ratios of service points won to service games held for both players
+tennis_data_clean$player0_serve_points_won_to_games_held_ratio <- ifelse(tennis_data_clean$player0_service_games_held == 0, NA, tennis_data_clean$player0_servepointswon / tennis_data_clean$player0_service_games_held)
+tennis_data_clean$player1_serve_points_won_to_games_held_ratio <- ifelse(tennis_data_clean$player1_service_games_held == 0, NA, tennis_data_clean$player1_servepointswon / tennis_data_clean$player1_service_games_held)
+
+# Calculate the difference between the two ratios
+tennis_data_clean$serve_points_won_to_games_held_diff <- tennis_data_clean$player0_serve_points_won_to_games_held_ratio - tennis_data_clean$player1_serve_points_won_to_games_held_ratio
+
+
+
+# Age difference
+tennis_data_clean$age_diff <- tennis_data_clean$player0_age - tennis_data_clean$player1_age
+
+# Height difference
+tennis_data_clean$height_diff <- tennis_data_clean$player0_height - tennis_data_clean$player1_height
+
+# Rank difference
+tennis_data_clean$rank_diff <- tennis_data_clean$player0_rank - tennis_data_clean$player1_rank
+
+# Rank points difference
+tennis_data_clean$rank_points_diff <- tennis_data_clean$player0_rank_points - tennis_data_clean$player1_rank_points
+
+
+```
+
+```{r}
+tennis_data_clean <- tennis_data_clean %>%
+  select(-player0_age, -player1_age, -player0_height, -player1_height, -player0_first_serve_won, -player0_first_serve_in, -player1_first_serve_won, -player1_first_serve_in, -player0_second_serve_won, -player1_second_serve_won, -player1_rank, -player0_rank, -player0_rank_points, -player1_rank_points,
+  -player0_breakpoints_faced,   
+  -player0_breakpoints_saved,   
+  -player1_breakpoints_faced,   
+  -player1_breakpoints_saved,
+  -player0_service_games_held,
+  -player1_servepointswon,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player1_servepointswon,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player0_service_games_held,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player0_service_games_held,
+  -player1_servepointswon,
+  -player0_serve_points_won_to_games_held_ratio,
+  -player1_serve_points_won_to_games_held_ratio, 
+  )
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+```{r}
+numeric_vars <- tennis_data_clean[, sapply(tennis_data_clean, is.numeric)]
+numeric_vars
+```
+
+```{r}
+correlation_matrix <- cor(numeric_vars, use = "complete.obs")
+```
+
+
+```{r}
+png("heatmap.png", width = 800, height = 800)
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+dev.off()
+```
+
+
+```{r}
+threshold <- 0.7
+```
+
+```{r}
+correlation_matrix_no_diag <- correlation_matrix
+diag(correlation_matrix_no_diag) <- 0
+```
+
+```{r}
+highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
+highly_correlated_pairs
+```
+
+```{r}
+highly_correlated_vars <- unique(rownames(highly_correlated_pairs))
+highly_correlated_vars
+```
+
+```{r}
+unique(final_data$best_of)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+```{r}
+numeric_vars <- sapply(tennis_data_clean, is.numeric)
+for (col in colnames(tennis_data_clean)[numeric_vars]) {
+  tennis_data_clean[[col]] <- ifelse(is.na(tennis_data_clean[[col]]), mean(tennis_data_clean[[col]], na.rm = TRUE), tennis_data_clean[[col]])
+}
+```
+
+
+```{r}
+# Drop rows with missing values in player0_hand or player1_hand
+tennis_data_clean <- tennis_data_clean[!is.na(tennis_data_clean$player0_hand) & !is.na(tennis_data_clean$player1_hand), ]
+
+```
+
+
+```{r}
+# Analyze missing values in the dataset
+missing_values <- tennis_data_clean %>%
+  gather(variable, value) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100)
+
+print(missing_values)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+```{r}
+# Load the required packages
+library(caret)
+```
+
+
+```{r}
+#tennis_data_clean$winner <- as.factor(tennis_data_clean$winner)
+```
+
+```{r}
+tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
+tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
+tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
+tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
 ```
 
