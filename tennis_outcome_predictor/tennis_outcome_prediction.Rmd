@@ -511,3 +511,37 @@ tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
 tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
 ```
 
+```{r}
+set.seed(123)
+trainIndex <- createDataPartition(tennis_data_clean$winner, p = .7, list = FALSE, times = 1)
+train_set <- tennis_data_clean[trainIndex, ]
+test_set <- tennis_data_clean[-trainIndex, ]
+
+
+```
+
+```{r}
+logistic_model <- glm(winner ~., family = binomial(link = "logit"), data = train_set)
+```
+
+```{r}
+predictions <- predict(logistic_model, test_set, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+predicted_classes <- factor(ifelse(predictions > 0.5, 1, 0), levels = c(0, 1))
+test_set$winner <- factor(test_set$winner, levels = c(0, 1))
+cm <- confusionMatrix(predicted_classes, test_set$winner)
+```
+
+```{r}
+
+cm
+```
+
+```{r}
+library(pROC)
+roc_curve <- roc(test_set$winner, predictions)
+plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
+lines(x = c(0, 1), y = c(0, 1), col = "red")
+roc_auc <- auc(roc_curve)
+
+```
