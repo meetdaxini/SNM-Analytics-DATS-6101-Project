@@ -538,10 +538,74 @@ cm
 ```
 
 ```{r}
+cm_df <- as.data.frame(cm$table)
+colnames(cm_df) <- c("Prediction", "Reference", "n")
+
+```
+
+```{r}
+plot_confusion_matrix <- function(cm_df) {
+  ggplot(data = cm_df, aes(x = Reference, y = Prediction, fill = n)) +
+    geom_tile() +
+    geom_text(aes(label = n), color = "black") +
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    theme_minimal() +
+    xlab("Actual") +
+    ylab("Predicted") +
+    ggtitle("Confusion Matrix") +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+plot_cm <- plot_confusion_matrix(cm_df)
+print(plot_cm)
+```
+```{r}
+accuracy <- cm$overall["Accuracy"]
+sensitivity <- cm$byClass["Sensitivity"]
+specificity <- cm$byClass["Specificity"]
+f1_score <- cm$byClass["F1"]
+
+cat("Accuracy: ", accuracy, "\n")
+cat("Sensitivity (Recall): ", sensitivity, "\n")
+cat("Specificity: ", specificity, "\n")
+cat("F1-score: ", f1_score, "\n")
+
+```
+
+
+```{r}
 library(pROC)
 roc_curve <- roc(test_set$winner, predictions)
 plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
 lines(x = c(0, 1), y = c(0, 1), col = "red")
 roc_auc <- auc(roc_curve)
 
+```
+
+
+```{r}
+# Load required packages
+library(caret)
+library(e1071)
+
+
+# Split data into training and testing sets
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl, tuneGrid = expand.grid(C = c(0.01, 0.1, 1, 10, 100)))
+
+```
+
+
+```{r}
+train_set$winner <- as.factor(train_set$winner)
+test_set$winner <- as.factor(test_set$winner)
+levels(train_set$winner) <- c("Winner_0", "Winner_1")
+levels(test_set$winner) <- c("Winner_0", "Winner_1")
+```
+
+```{r}
+cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final", classProbs = TRUE, summaryFunction = twoClassSummary)
+set.seed(123)
+random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
+print(random_forest_model)
 ```
