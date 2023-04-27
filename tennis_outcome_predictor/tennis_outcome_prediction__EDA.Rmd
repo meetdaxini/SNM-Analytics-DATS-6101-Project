@@ -245,6 +245,25 @@ ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
 ```
 age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
 
+
+```{r}
+
+# Filter out rows with missing winner_age and loser_age values
+filtered_data <- data %>%
+  filter(!is.na(winner_aces) & !is.na(loser_aces))
+
+# Create a density plot for winner_age and loser_age
+ggplot() +
+  geom_density(data = filtered_data, aes(x = winner_aces, fill = "Winner")) +
+  geom_density(data = filtered_data, aes(x = loser_aces, fill = "Loser")) +
+  labs(x = "Ace", y = "Density", title = "Ace Distribution of Winners and Losers", fill = "Role") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+
+```
+
+
 ```{r}
 str(data)
 ```
@@ -368,11 +387,26 @@ ggplot(data = tennis_data_clean, aes(x = player0_age)) +
 ```
 
 
+```{r}
+library(ggplot2)
+
+ggplot(data = tennis_data_clean, aes(x = player1_age)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 30) +
+  labs(title = "Distribution of Player Ages", x = "Age", y = "Count")
+
+```
+
+
 
 ```{r}
-ggplot(data = tennis_data_clean, aes(x = surface, y = player0_height)) +
-  geom_boxplot() +
-  labs(x = "Surface", y = "Player Height")
+surface_colors <- c("Clay" = "#EB9694", 
+                    "Carpet" = "#FABE58", 
+                    "Grass" = "#87D37C", 
+                    "Hard" = "#5DADE2")
+ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surface)) +
+  geom_boxplot() + scale_fill_manual(values = surface_colors)
+  labs(x = "Surface", y = "Player ace") +  theme_minimal() +
+  theme(legend.position = "none")
 ```
 
 Boxplot for Rank vs surface
@@ -466,6 +500,16 @@ tennis_data_clean <- tennis_data_clean %>%
 
 ```{r}
 str(tennis_data_clean)
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(data = tennis_data_clean, aes(x = age_diff)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 30) +
+  labs(title = "Distribution of Player Ages", x = "Age", y = "Count")
+
 ```
 
 ```{r}
