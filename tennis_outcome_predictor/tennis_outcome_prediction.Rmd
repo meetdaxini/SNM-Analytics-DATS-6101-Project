@@ -43,6 +43,11 @@ library(dplyr)
 library(tidyverse)
 library(readr)
 library(ggplot2)
+library(caret)
+library(knitr)
+library(corrplot)
+library(pROC)
+library(e1071)
 ```
 
 # Introduction
@@ -145,10 +150,7 @@ ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
 
 
 ```{r}
-library(knitr)
-
 kable(non_null_stats, digits = 2)
-
 ```
 
 The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
@@ -163,7 +165,7 @@ data <- data %>% filter(year >= 1991)
 str(data)
 ```
 
-# Data Preprocessing & Cleaning
+# Data Preprocessing/Cleaning & EDA
 
 ```{r}
 # Analyze missing values in the dataset
@@ -226,6 +228,7 @@ data <- data %>%
 summary(data)
 ```
 
+
 ```{r}
 # Define a custom color palette for the surfaces
 surface_colors <- c("Clay" = "#EB9694", 
@@ -280,6 +283,7 @@ ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
   theme_minimal() +
   theme(legend.position = "none")
 ```
+
 age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
 
 
@@ -403,10 +407,6 @@ final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
 ```
 
 ```{r}
-library(corrplot)
-```
-
-```{r}
 numeric_vars <- final_data[, sapply(final_data, is.numeric)]
 correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 png("heatmap_full.png", width = 800, height = 800)
@@ -441,6 +441,8 @@ ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surfac
 ```
 
 From the boxplot we can see the player ace per court and the grass courts have the highest number of aces per game and clay court have the least.This indicates that the player has to focus more on aces in the grass court than other surfaces.
+
+# Feature Engineering and Selection
 
 ```{r}
 # Serve percentage difference
@@ -516,7 +518,6 @@ correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 
 
 ```{r}
-library(corrplot)
 png("heatmap1.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
@@ -581,10 +582,6 @@ print(missing_values)
 str(tennis_data_clean)
 ```
 
-```{r}
-# Load the required packages
-library(caret)
-```
 
 
 ```{r}
@@ -665,7 +662,6 @@ cat("F1-score: ", f1_score, "\n")
 
 
 ```{r}
-library(pROC)
 roc_curve <- roc(test_set$winner, predictions)
 plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
 lines(x = c(0, 1), y = c(0, 1), col = "red")
@@ -675,11 +671,6 @@ roc_auc <- auc(roc_curve)
 
 
 ```{r}
-# Load required packages
-library(caret)
-library(e1071)
-
-
 # Split data into training and testing sets
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl, tuneGrid = expand.grid(C = c(0.01, 0.1, 1, 10, 100)))
