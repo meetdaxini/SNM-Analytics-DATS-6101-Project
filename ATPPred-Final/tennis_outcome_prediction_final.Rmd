@@ -1,0 +1,601 @@
+---
+title: "Tennis Match Outcome Predictions"
+author: "Team: SNM Analytics"
+# date: "today"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+
+```{r init, include=F}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(scientific = T, digits = 3)
+
+# Loading the required libraries
+library(ezids)
+library(dplyr)
+library(e1071)
+library(tidyverse)
+library(caret)
+library(readr)
+library(car)
+library(ggplot2)
+library(knitr)
+library(pROC)
+```
+
+## 1. Introduction
+
+In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
+
+## 2. SMART Question:
+
+What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
+
+This question not only focuses on prediction accuracy but also emphasizes the importance of understanding which factors contribute the most to the outcome. By answering this question, you can gain insights into the game and potentially develop strategies for players or coaches to improve performance.
+
+
+```{r}
+# Initialize an empty data frame
+data <- data.frame()
+
+# Loop through the years and read the corresponding atp_matches files
+for (year in 1968:2023) {
+  file_path <- paste0("data/atp_matches_", year, ".csv")
+  
+  if (file.exists(file_path)) {
+    temp_data <- read.csv(file_path)
+    data <- rbind(data, temp_data)
+  }
+}
+```
+
+```{r}
+# Understand the structure of the dataset
+str(data)
+```
+## 3. Data Preprocessing & Cleaning:
+
+```{r}
+rows <- nrow(data)
+cols <- ncol(data)
+```
+
+Our data set has `r rows` observations and `r cols` variables
+
+### Data preprocessing
+
+```{r}
+# Convert tourney_date to a Date object
+data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
+
+# Extract year from tourney_date
+data$year <- year(data$tourney_date)
+
+# Select the relevant columns (numeric match statistics)
+stats_columns <- c("w_ace", "w_df", "w_svpt", "w_1stIn", "w_1stWon", "w_2ndWon", "w_SvGms", "w_bpSaved", "w_bpFaced",
+                   "l_ace", "l_df", "l_svpt", "l_1stIn", "l_1stWon", "l_2ndWon", "l_SvGms", "l_bpSaved", "l_bpFaced")
+
+# Calculate the percentage of non-null values per year for each numeric variable
+non_null_stats <- data %>%
+  group_by(year) %>%
+  summarize(across(all_of(stats_columns), ~mean(!is.na(.)) * 100, .names = "pct_non_null_{col}"))
+
+# Gather the data into a long format for easy plotting
+non_null_stats_long <- non_null_stats %>%
+  gather(key = "variable", value = "pct_non_null", -year)
+```
+
+# Plot & numeric representation of year-wise match statistics
+
+```{r}
+# Plot the percentage of non-null values per year for each numeric variable
+ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Percentage of Non-Null Match Statistics per Year",
+       x = "Year",
+       y = "Percentage of Non-Null Values",
+       color = "Statistic") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(min(non_null_stats_long$year), max(non_null_stats_long$year), by = 5))
+
+
+```
+```{r}
+nodatastat <- kable(non_null_stats, digits = 2)
+```
+The table shows that there are no significant data available from 1968 to 1990
+`r nodatastat`
+
+The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level statistics from the year 1968. Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
+
+```{r}
+#Filtering 1968-1990 data
+data <- data %>% filter(year >= 1991)
+```
+
+## Checking for NULLS
+
+```{r}
+# Analyze missing values in the dataset
+missing_values <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100)
+
+print(missing_values)
+```
+The table shows the count and percentages of the missing values:
+*missing_values*
+
+```{r}
+# Analyze missing values by year
+missing_values_by_year <- data %>%
+  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id, -year) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(year, variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100) 
+
+print(missing_values_by_year)
+```
+
+
+
+```{r}
+data <- data %>% 
+  rename(tournament_id = tourney_id,
+         tournament_name = tourney_name,
+         tournament_level = tourney_level,
+         tournament_date = tourney_date,
+         winner_height = winner_ht,
+         winner_country = winner_ioc,
+         loser_height = loser_ht,
+         loser_country = loser_ioc,
+         winner_aces = w_ace,
+         winner_doublefaults = w_df,
+         winner_servepointswon = w_svpt,
+         winner_first_serve_in = w_1stIn,
+         winner_first_serve_won = w_1stWon,
+         winner_second_serve_won = w_2ndWon,
+         winner_service_games_held = w_SvGms,
+         winner_breakpoints_saved = w_bpSaved,
+         winner_breakpoints_faced = w_bpFaced,
+         loser_aces = l_ace,
+         loser_doublefaults = l_df,
+         loser_servepointswon = l_svpt,
+         loser_first_serve_in = l_1stIn,
+         loser_first_serve_won = l_1stWon,
+         loser_second_serve_won = l_2ndWon,
+         loser_service_games_held = l_SvGms,
+         loser_breakpoints_saved = l_bpSaved,
+         loser_breakpoints_faced = l_bpFaced)
+```
+
+
+```{r}
+summary(data)
+```
+
+```{r}
+# Define a custom color palette for the surfaces
+surface_colors <- c("Clay" = "#EB9694", 
+                    "Carpet" = "#FABE58", 
+                    "Grass" = "#87D37C", 
+                    "Hard" = "#5DADE2")
+
+# Create the bar chart with custom colors and adjusted font sizes
+ggplot(data, aes(x = surface, fill = surface)) + 
+  geom_bar(color = "black") +
+  scale_fill_manual(values = surface_colors) +
+  labs(title = "Total Matches Played on Various Surfaces Since 1991",
+       x = "Surface",
+       y = "Total Matches") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",
+        axis.title.x = element_text(margin = margin(t = 10), size = 12),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_line(colour = "gray90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 18, hjust = 0.5, color = "gray40"),
+        plot.caption = element_text(size = 14, hjust = 0, color = "gray40"),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))
+
+```
+
+Most of the matches played are on hard courts!
+
+```{r}
+# Filter out rows with missing winner_age and loser_age values
+filtered_data <- data %>%
+  filter(!is.na(winner_age) & !is.na(loser_age))
+
+# Create a density plot for winner_age and loser_age
+ggplot() +
+  geom_density(data = filtered_data, aes(x = winner_age, fill = "Winner"), alpha = 0.5) +
+  geom_density(data = filtered_data, aes(x = loser_age, fill = "Loser"), alpha = 0.5) +
+  labs(x = "Age", y = "Density", title = "Age Distribution of Winners and Losers", fill = "Role") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# Create a box plot for winner_age and loser_age
+winner_loser_age <- filtered_data %>%
+  select(winner_age, loser_age) %>%
+  gather(key = "Role", value = "Age", winner_age, loser_age)
+
+ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "Age", title = "Age Distribution of Winners and Losers") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
+
+```{r}
+str(data)
+```
+
+```{r}
+filtered_data <- data %>%
+  mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
+         winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
+         loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
+         loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
+```
+
+```{r}
+filtered_data
+```
+
+```{r}
+# Prepare the data
+winner_loser_data <- filtered_data %>%
+  select(winner_first_serve_pct, loser_first_serve_pct) %>%
+  gather(key = "Role", value = "First Serve Win Percentage", winner_first_serve_pct, loser_first_serve_pct)
+
+# Create the box plot
+box_plot <- ggplot(winner_loser_data, aes(x = Role, y = `First Serve Win Percentage`, fill = Role)) +
+  geom_boxplot() +
+  labs(x = "", y = "First Serve Win Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Display the box plot
+print(box_plot)
+
+```
+
+
+As expected winner first serve winning percentage is quite higher
+
+```{r}
+str(data)
+```
+
+```{r}
+data = data[sample(1:nrow(data)), ]
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+# Determine the number of rows in half the dataset
+half_nrow <- nrow(data) %/% 2
+
+# Split the dataset in half
+first_half <- data[1:half_nrow, ]
+second_half <- data[(half_nrow + 1):nrow(data), ]
+
+# Rename columns for the first half
+colnames(first_half)[grep("winner", colnames(first_half))] <- gsub("winner", "player0", colnames(first_half)[grep("winner", colnames(first_half))])
+colnames(first_half)[grep("loser", colnames(first_half))] <- gsub("loser", "player1", colnames(first_half)[grep("loser", colnames(first_half))])
+
+# Rename columns for the second half
+colnames(second_half)[grep("winner", colnames(second_half))] <- gsub("winner", "player1", colnames(second_half)[grep("winner", colnames(second_half))])
+colnames(second_half)[grep("loser", colnames(second_half))] <- gsub("loser", "player0", colnames(second_half)[grep("loser", colnames(second_half))])
+
+# Add 'winner' column to the first half and set it to 0 (player0 is the winner)
+first_half$winner <- 0
+
+# Add 'winner' column to the second half and set it to 1 (player1 is the winner)
+second_half$winner <- 1
+
+# Combine the two halves
+renamed_data <- rbind(first_half, second_half)
+```
+
+
+```{r}
+str(renamed_data)
+```
+
+```{r}
+# Replace 'tennis_data' with the name of your data frame
+# write.csv(renamed_data, "tennis_data.csv", row.names = FALSE)
+```
+
+```{r}
+final_data = renamed_data
+```
+
+```{r}
+ncol(final_data)
+```
+
+```{r}
+final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
+```
+
+```{r}
+tennis_data_clean <- final_data %>%
+  select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
+```
+
+```{r}
+ncol(tennis_data_clean)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+
+```{r}
+# Serve percentage difference
+tennis_data_clean$first_serve_pct_diff <- (tennis_data_clean$player0_first_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_first_serve_won / tennis_data_clean$player1_first_serve_in)
+
+# tennis_data_clean$second_serve_pct_diff <- (tennis_data_clean$player0_second_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_second_serve_won / tennis_data_clean$player1_first_serve_in)
+tennis_data_clean$breakpoint_save_pct_diff <- with(tennis_data_clean, 
+    ifelse(player0_breakpoints_faced == 0, 0, player0_breakpoints_saved / player0_breakpoints_faced) -
+    ifelse(player1_breakpoints_faced == 0, 0, player1_breakpoints_saved / player1_breakpoints_faced)
+)
+
+
+# Calculate the ratios of service points won to service games held for both players
+tennis_data_clean$player0_serve_points_won_to_games_held_ratio <- ifelse(tennis_data_clean$player0_service_games_held == 0, NA, tennis_data_clean$player0_servepointswon / tennis_data_clean$player0_service_games_held)
+tennis_data_clean$player1_serve_points_won_to_games_held_ratio <- ifelse(tennis_data_clean$player1_service_games_held == 0, NA, tennis_data_clean$player1_servepointswon / tennis_data_clean$player1_service_games_held)
+
+# Calculate the difference between the two ratios
+tennis_data_clean$serve_points_won_to_games_held_diff <- tennis_data_clean$player0_serve_points_won_to_games_held_ratio - tennis_data_clean$player1_serve_points_won_to_games_held_ratio
+
+
+
+# Age difference
+tennis_data_clean$age_diff <- tennis_data_clean$player0_age - tennis_data_clean$player1_age
+
+# Height difference
+tennis_data_clean$height_diff <- tennis_data_clean$player0_height - tennis_data_clean$player1_height
+
+# Rank difference
+tennis_data_clean$rank_diff <- tennis_data_clean$player0_rank - tennis_data_clean$player1_rank
+
+# Rank points difference
+tennis_data_clean$rank_points_diff <- tennis_data_clean$player0_rank_points - tennis_data_clean$player1_rank_points
+
+
+```
+
+```{r}
+tennis_data_clean <- tennis_data_clean %>%
+  select(-player0_age, -player1_age, -player0_height, -player1_height, -player0_first_serve_won, -player0_first_serve_in, -player1_first_serve_won, -player1_first_serve_in, -player0_second_serve_won, -player1_second_serve_won, -player1_rank, -player0_rank, -player0_rank_points, -player1_rank_points,
+  -player0_breakpoints_faced,   
+  -player0_breakpoints_saved,   
+  -player1_breakpoints_faced,   
+  -player1_breakpoints_saved,
+  -player0_service_games_held,
+  -player1_servepointswon,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player1_servepointswon,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player0_service_games_held,
+  -player1_service_games_held,
+  -player0_servepointswon,
+  -player0_service_games_held,
+  -player1_servepointswon,
+  -player0_serve_points_won_to_games_held_ratio,
+  -player1_serve_points_won_to_games_held_ratio, 
+  )
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+```{r}
+numeric_vars <- tennis_data_clean[, sapply(tennis_data_clean, is.numeric)]
+numeric_vars
+```
+
+```{r}
+correlation_matrix <- cor(numeric_vars, use = "complete.obs")
+```
+
+
+```{r}
+##png("heatmap.png", width = 800, height = 800)
+#corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+#dev.off()
+```
+
+
+```{r}
+threshold <- 0.7
+```
+
+```{r}
+correlation_matrix_no_diag <- correlation_matrix
+diag(correlation_matrix_no_diag) <- 0
+```
+
+```{r}
+highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
+highly_correlated_pairs
+```
+
+```{r}
+highly_correlated_vars <- unique(rownames(highly_correlated_pairs))
+highly_correlated_vars
+```
+
+```{r}
+unique(final_data$best_of)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+```{r}
+numeric_vars <- sapply(tennis_data_clean, is.numeric)
+for (col in colnames(tennis_data_clean)[numeric_vars]) {
+  tennis_data_clean[[col]] <- ifelse(is.na(tennis_data_clean[[col]]), mean(tennis_data_clean[[col]], na.rm = TRUE), tennis_data_clean[[col]])
+}
+```
+
+
+```{r}
+# Drop rows with missing values in player0_hand or player1_hand
+tennis_data_clean <- tennis_data_clean[!is.na(tennis_data_clean$player0_hand) & !is.na(tennis_data_clean$player1_hand), ]
+
+```
+
+
+```{r}
+# Analyze missing values in the dataset
+missing_values <- tennis_data_clean %>%
+  gather(variable, value) %>%
+  mutate(is_missing = is.na(value)) %>%
+  group_by(variable) %>%
+  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100)
+
+print(missing_values)
+```
+
+```{r}
+str(tennis_data_clean)
+```
+
+
+```{r}
+#tennis_data_clean$winner <- as.factor(tennis_data_clean$winner)
+```
+
+```{r}
+tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
+tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
+tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
+tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
+```
+
+```{r}
+set.seed(123)
+trainIndex <- createDataPartition(tennis_data_clean$winner, p = .7, list = FALSE, times = 1)
+train_set <- tennis_data_clean[trainIndex, ]
+test_set <- tennis_data_clean[-trainIndex, ]
+
+
+```
+
+```{r}
+logistic_model <- glm(winner ~., family = binomial(link = "logit"), data = train_set)
+```
+
+```{r}
+logistic_model
+```
+```{r}
+vif(logistic_model)
+```
+
+
+```{r}
+predictions <- predict(logistic_model, test_set, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+predicted_classes <- factor(ifelse(predictions > 0.5, 1, 0), levels = c(0, 1))
+test_set$winner <- factor(test_set$winner, levels = c(0, 1))
+cm <- confusionMatrix(predicted_classes, test_set$winner)
+```
+
+```{r}
+
+cm
+```
+
+```{r}
+
+roc_curve <- roc(test_set$winner, predictions)
+plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
+lines(x = c(0, 1), y = c(0, 1), col = "red")
+roc_auc <- auc(roc_curve)
+
+```
+
+
+```{r}
+# Split data into training and testing sets
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl)
+```
+
+```{r}
+svm_model
+```
+```{r}
+# Predict the winner using the SVM model on the testing set
+svm_pred 
+# Evaluate the accuracy of the SVM model
+#accuracy <- sum(svm_pred == test_set$winner)/nrow(test_set)
+#print(paste("Accuracy of SVM model:", round(accuracy, 4)))
+
+# Evaluate the model using confusion matrix and performance metrics
+conf_matrix <- confusionMatrix(svm_pred, test_set$winner)
+conf_matrix
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy of SVM model:", round(accuracy, 4)))
+precision <- conf_matrix$byClass['Pos Pred Value']
+print(paste("precision of SVM model:", round(precision, 4)))
+recall <- conf_matrix$byClass['Sensitivity']
+print(paste("recall of SVM model:", round(recall, 4)))
+f1_score <- conf_matrix$byClass['F1']
+print(paste("f1_score of SVM model:", round(f1_score, 4)))
+
+```
+
+
+```{r}
+train_set$winner <- as.factor(train_set$winner)
+test_set$winner <- as.factor(test_set$winner)
+levels(train_set$winner) <- c("Winner_0", "Winner_1")
+levels(test_set$winner) <- c("Winner_0", "Winner_1")
+```
+
+```{r}
+cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final", classProbs = TRUE, summaryFunction = twoClassSummary)
+set.seed(123)
+random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
+print(random_forest_model)
+```
