@@ -61,6 +61,10 @@ str(data)
 data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
 ```
 
+```{r}
+str(data)
+```
+
 
 ```{r}
 # Extract year from tourney_date
@@ -112,9 +116,7 @@ ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
 
 ```{r}
 library(knitr)
-
 kable(non_null_stats, digits = 2)
-
 ```
 
 The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
@@ -366,6 +368,19 @@ final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
 ```
 
 ```{r}
+library(corrplot)
+```
+
+```{r}
+numeric_vars <- final_data[, sapply(final_data, is.numeric)]
+correlation_matrix <- cor(numeric_vars, use = "complete.obs")
+png("heatmap_full.png", width = 800, height = 800)
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+dev.off()
+```
+
+
+```{r}
 tennis_data_clean <- final_data %>%
   select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
 ```
@@ -375,7 +390,7 @@ ncol(tennis_data_clean)
 ```
 
 ```{r}
-str(tennis_data_clean)
+unique(tennis_data_clean$player0_hand)
 ```
 
 
@@ -466,7 +481,8 @@ correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 
 
 ```{r}
-png("heatmap.png", width = 800, height = 800)
+library(corrplot)
+png("heatmap1.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
 ```
@@ -545,6 +561,10 @@ tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
 tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
 tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
 tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
+```
+
+```{r}
+str(tennis_data_clean)
 ```
 
 ```{r}
@@ -628,7 +648,6 @@ library(e1071)
 # Split data into training and testing sets
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl, tuneGrid = expand.grid(C = c(0.01, 0.1, 1, 10, 100)))
-
 ```
 
 
@@ -644,4 +663,57 @@ cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final"
 set.seed(123)
 random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
 print(random_forest_model)
+```
+
+
+```{r}
+print(random_forest_model)
+```
+
+```{r}
+rf_predictions <- predict(random_forest_model, newdata = test_set)
+```
+
+
+```{r}
+
+confusionMatrix(rf_predictions, test_set$winner)
+
+# Calculate accuracy, precision, recall, and F1-score
+rf_cm <- confusionMatrix(rf_predictions, test_set$winner)
+accuracy <- cm$overall['Accuracy']
+precision <- cm$byClass['Pos Pred Value']
+recall <- cm$byClass['Sensitivity']
+f1_score <- 2 * (precision * recall) / (precision + recall)
+
+cat("Accuracy: ", accuracy, "\n")
+cat("Precision: ", precision, "\n")
+cat("Recall: ", recall, "\n")
+cat("F1-score: ", f1_score, "\n")
+
+```
+
+
+```{r}
+
+rf_cm_df <- as.data.frame(rf_cm$table)
+colnames(rf_cm_df) <- c("Prediction", "Reference", "n")
+
+rf_plot_cm <- plot_confusion_matrix(rf_cm_df)
+print(rf_plot_cm)
+```
+
+
+```{r}
+# Create the confusion matrix data frame
+cm_values <- c(12995, 2352, 2400, 13210)
+cm_df <- data.frame(
+  Prediction = rep(c("Winner_0", "Winner_1"), each = 2),
+  Reference = rep(c("Winner_0", "Winner_1"), times = 2),
+  n = cm_values
+)
+
+# Use the provided function to plot the confusion matrix
+plot_confusion_matrix(cm_df)
+
 ```
