@@ -28,10 +28,13 @@ library(readr)
 library(ggplot2)
 ```
 
-Introduction
+# Introduction
+
+## Project Overview
+
 In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
 
-Our SMART Question:
+## Our SMART Question:
 
 What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
 
@@ -45,7 +48,6 @@ data <- data.frame()
 # Loop through the years and read the corresponding atp_matches files
 for (year in 1968:2023) {
   file_path <- paste0("data/atp_matches_", year, ".csv")
-  
   if (file.exists(file_path)) {
     temp_data <- read.csv(file_path)
     data <- rbind(data, temp_data)
@@ -53,11 +55,26 @@ for (year in 1968:2023) {
 }
 ```
 
+
 ```{r}
 str(data)
 ```
+
+
+## Dataset Description
+
+The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
+
+Some of the key features in the dataset can be grouped under the following categories:
+
+1. Player details: player names, ages, heights, etc.
+2. Match details: tournament name, surface, round, etc.
+3. Player rankings: ATP rankings and ranking points.
+4. Match statistics: aces, double faults, first serves in, first serve points won, etc.
+
+
 ```{r}
-# Convert tourney_date to a Date object
+# Convert tourney_date character type to a Date object
 data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
 ```
 
