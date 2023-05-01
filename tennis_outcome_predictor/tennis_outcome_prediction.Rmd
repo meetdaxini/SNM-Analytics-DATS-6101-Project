@@ -152,7 +152,7 @@ missing_values_by_year <- data %>%
 print(missing_values_by_year)
 ```
 
-
+Rename the Variables for understanding
 
 ```{r}
 data <- data %>% 
@@ -245,6 +245,26 @@ ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
 ```
 age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
 
+
+```{r}
+
+# Filter out rows with missing winner_age and loser_age values
+filtered_data <- data %>%
+  filter(!is.na(winner_aces) & !is.na(loser_aces))
+
+# Create a density plot for winner_ace and loser_ace
+ggplot() +
+  geom_density(data = filtered_data, aes(x = winner_aces, fill = "Winner")) +
+  geom_density(data = filtered_data, aes(x = loser_aces, fill = "Loser")) +
+  labs(x = "Ace", y = "Density", title = "Ace Distribution of Winners and Losers", fill = "Role") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+
+```
+
+Ace Distribution between losers and winners.
+
 ```{r}
 str(data)
 ```
@@ -294,6 +314,8 @@ data = data[sample(1:nrow(data)), ]
 ```{r}
 str(data)
 ```
+
+
 
 ```{r}
 # Determine the number of rows in half the dataset
@@ -356,6 +378,19 @@ ncol(tennis_data_clean)
 str(tennis_data_clean)
 ```
 
+
+```{r}
+surface_colors <- c("Clay" = "#EB9694", 
+                    "Carpet" = "#FABE58", 
+                    "Grass" = "#87D37C", 
+                    "Hard" = "#5DADE2")
+ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surface)) +
+  geom_boxplot() + scale_fill_manual(values = surface_colors)
+  labs(x = "Surface", y = "Player ace",title = "Players Ace's on Different Surfaces" ) +
+  theme(legend.position = "none")
+```
+
+From the boxplot we can see the player ace per court and the grass courts have the highest number of aces per game and clay court have the least.This indicates that the player has to focus more on aces in the grass court than other surfaces.
 
 ```{r}
 # Serve percentage difference
@@ -470,6 +505,7 @@ for (col in colnames(tennis_data_clean)[numeric_vars]) {
   tennis_data_clean[[col]] <- ifelse(is.na(tennis_data_clean[[col]]), mean(tennis_data_clean[[col]], na.rm = TRUE), tennis_data_clean[[col]])
 }
 ```
+
 
 
 ```{r}

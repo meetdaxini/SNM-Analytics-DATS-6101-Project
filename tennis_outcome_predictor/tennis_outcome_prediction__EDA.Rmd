@@ -252,10 +252,10 @@ age distribution for "Losers" is wider than "Winners", although mean value is qu
 filtered_data <- data %>%
   filter(!is.na(winner_aces) & !is.na(loser_aces))
 
-# Create a density plot for winner_age and loser_age
+# Create a density plot for winner_ace and loser_ace
 ggplot() +
-  geom_density(data = filtered_data, aes(x = winner_aces, fill = "Winner")) +
-  geom_density(data = filtered_data, aes(x = loser_aces, fill = "Loser")) +
+  geom_bar(data = filtered_data, aes(x = winner_aces, fill = "Winner")) +
+  geom_bar(data = filtered_data, aes(x = loser_aces, fill = "Loser")) +
   labs(x = "Ace", y = "Density", title = "Ace Distribution of Winners and Losers", fill = "Role") +
   theme_minimal() +
   theme(legend.position = "top")
@@ -289,7 +289,7 @@ winner_loser_data <- filtered_data %>%
 # Create the box plot
 box_plot <- ggplot(winner_loser_data, aes(x = Role, y = `First Serve Win Percentage`, fill = Role)) +
   geom_boxplot() +
-  labs(x = "", y = "First Serve Win Percentage") +
+  labs(x = "", y = "First Serve Win Percentage",title="First Serve Win Percentage for Winners and Losers") +
   theme_minimal() +
   theme(legend.position = "none")
 
@@ -405,7 +405,7 @@ surface_colors <- c("Clay" = "#EB9694",
                     "Hard" = "#5DADE2")
 ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surface)) +
   geom_boxplot() + scale_fill_manual(values = surface_colors)
-  labs(x = "Surface", y = "Player ace") +  theme_minimal() +
+  labs(x = "Surface", y = "Player ace",title = "Players Ace's on Different Surfaces" ) +
   theme(legend.position = "none")
 ```
 
@@ -415,7 +415,13 @@ ggplot(data = tennis_data_clean, aes(x = surface, y = player0_rank)) +
   geom_boxplot() +
   labs(x = "Surface", y = "Player rank")
 ```
+```{r}
+ggplot(data = tennis_data_clean, aes(x = player1_hand)) +
+  geom_bar(fill = "#5DADE2", alpha = 0.7) +
+  labs(x = "Player Hand", y = "Count", title = "Distribution of Player Hand") +
+  theme_minimal()
 
+```
 
 Stacked bar chart of player hand by tournament leve
 ```{r}
@@ -523,6 +529,7 @@ correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 
 
 ```{r}
+library(corrplot)
 png("heatmap.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
