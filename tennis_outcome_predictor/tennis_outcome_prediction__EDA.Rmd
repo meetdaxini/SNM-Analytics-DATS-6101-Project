@@ -1,5 +1,5 @@
 ---
-title: "Tennis Match Outcome Predictions"
+title: "Predicting Tennis Match Outcomes: A Data-Driven Approach to the Game"
 author: "Team: SNM Analytics"
 # date: "today"
 date: "`r Sys.Date()`"
@@ -65,7 +65,7 @@ str(data)
 
 The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
 
-Some of the key features in the dataset can be grouped under the following categories:
+Some of the key features in the dataset are:
 
 1. Player details: player names, ages, heights, etc.
 2. Match details: tournament name, surface, round, etc.
