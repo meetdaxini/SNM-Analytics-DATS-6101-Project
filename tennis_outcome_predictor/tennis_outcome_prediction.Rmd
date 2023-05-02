@@ -31,7 +31,10 @@ library(knitr)
 library(corrplot)
 library(pROC)
 library(e1071)
+library(car)
 ```
+
+# Introduction
 
 ## Project Overview
 
@@ -58,16 +61,13 @@ for (year in 1968:2023) {
 }
 ```
 
+
 ```{r}
-# Understand the structure of the dataset
 str(data)
 ```
 
-```{r}
-rows <- nrow(data)
-cols <- ncol(data)
-```
-Our data set has `r rows` observations and `r cols` variables
+
+## Dataset Description
 
 The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
 
@@ -78,6 +78,7 @@ Some of the key features in the dataset are:
 3. Player rankings: ATP rankings and ranking points.
 4. Match statistics: aces, double faults, first serves in, first serve points won, etc.
 
+# Data Preprocessing/Cleaning & EDA
 
 ```{r}
 # Convert tourney_date character type to a Date object
@@ -134,26 +135,22 @@ ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
 
 
 ```{r}
-nodatastat <- kable(non_null_stats, digits = 2)
+xkabledply(non_null_stats, digits = 2)
 ```
-The table shows that there are no significant data available from 1968 to 1990
-`r nodatastat`
 
-The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
-statistics from the year 1968. Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
+Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
 
 ```{r}
-#Filtering 1968-1990 data
+#Filtering out 1968-1990 data
 data <- data %>% filter(year >= 1991)
 ```
 
 
 ```{r}
-# Understand the structure of the data
+# Sanity check
 str(data)
 ```
 
-# Data Preprocessing/Cleaning & EDA
 
 ```{r}
 # Analyze missing values in the dataset
@@ -178,8 +175,11 @@ missing_values_by_year <- data %>%
 print(missing_values_by_year)
 ```
 
+## Variables Renaming
+
+Renamed the Variables for better understanding
+
 ```{r}
-# Renamed the Variables for better understanding
 data <- data %>% 
   rename(tournament_id = tourney_id,
          tournament_name = tourney_name,
@@ -211,7 +211,6 @@ data <- data %>%
 
 
 ```{r}
-# Summary of the data
 summary(data)
 ```
 
@@ -293,14 +292,20 @@ ggplot() +
 Ace Distribution between losers and winners.
 
 ```{r}
-# Adding new columns
+# Sanity check
+str(data)
+```
+
+```{r}
 filtered_data <- data %>%
   mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
          winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
          loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
          loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
+```
 
-filtered_data
+```{r}
+xkabledplyhead(filtered_data)
 ```
 
 ```{r}
@@ -320,8 +325,6 @@ box_plot <- ggplot(winner_loser_data, aes(x = Role, y = `First Serve Win Percent
 print(box_plot)
 
 ```
-
-
 As expected winner first serve winning percentage is quite higher
 
 ```{r}
@@ -336,8 +339,17 @@ for (i in names(data)) {
 ```
 
 ```{r}
-data = data[sample(1:nrow(data)), ]
+# suffling the data randomly as it is all sorted year by year
+data <- data[sample(1:nrow(data)), ]
 ```
+
+
+```{r}
+#Sanity check
+str(data)
+```
+
+
 
 ```{r}
 # Determine the number of rows in half the dataset
@@ -372,72 +384,76 @@ str(renamed_data)
 ```
 
 ```{r}
-# Replace 'tennis_data' with the name of your data frame
+# Outputing all the randomly shuffled data renamed to a file
 # write.csv(renamed_data, "tennis_data.csv", row.names = FALSE)
 ```
 
 ```{r}
-# Renaming the final variable
-final_data = renamed_data
+final_data <- read_csv("tennis_data.csv", show_col_types = FALSE)
 ```
 
-```{r}
-# Number of columns of Final data
-col_final <- ncol(final_data)
-```
+# Feature Engineering and Selection
 
-There are `r col_final` number of columns in the dataset
 
 ```{r}
-# Reading the saved dataset
-final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
-```
-
-```{r}
-# Correlation map of the numeric variables
+# selects only the numeric columns from the final_data
 numeric_vars <- final_data[, sapply(final_data, is.numeric)]
+
+# computes the correlation matrix for the numeric variables
 correlation_matrix <- cor(numeric_vars, use = "complete.obs")
+
 png("heatmap_full.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
 ```
 
+```{r}
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+```
 
 ```{r}
-# CLean dataset for analysis
+# Keeping threshold as 0.7 for multicolinearity check
+threshold <- 0.7
+```
+
+```{r}
+correlation_matrix_no_diag <- correlation_matrix
+diag(correlation_matrix_no_diag) <- 0
+```
+
+```{r}
+highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
+highly_correlated_pairs
+```
+
+```{r}
+highly_correlated_vars <- unique(rownames(highly_correlated_pairs))
+highly_correlated_vars
+```
+we can remove some of the multicollinear variables like draw size and for other we can combine and create new variables to handle multicolinearity
+
+```{r}
+# Removing fields that are not required for the analysis
 tennis_data_clean <- final_data %>%
   select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
 ```
 
 ```{r}
-# Understand the unique values of player 0 hand
-unique(tennis_data_clean$player0_hand)
+ncol(tennis_data_clean)
 ```
 
 
-```{r}
-surface_colors <- c("Clay" = "#EB9694", 
-                    "Carpet" = "#FABE58", 
-                    "Grass" = "#87D37C", 
-                    "Hard" = "#5DADE2")
-ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surface)) +
-  geom_boxplot() + scale_fill_manual(values = surface_colors)
-  labs(x = "Surface", y = "Player ace",title = "Players Ace's on Different Surfaces" ) +
-  theme(legend.position = "none")
-```
-
-From the boxplot we can see the player ace per court and the grass courts have the highest number of aces per game and clay court have the least.This indicates that the player has to focus more on aces in the grass court than other surfaces.
 
 ```{r}
+
 # Serve percentage difference
 tennis_data_clean$first_serve_pct_diff <- (tennis_data_clean$player0_first_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_first_serve_won / tennis_data_clean$player1_first_serve_in)
 
-# tennis_data_clean$second_serve_pct_diff <- (tennis_data_clean$player0_second_serve_won / tennis_data_clean$player0_first_serve_in) - (tennis_data_clean$player1_second_serve_won / tennis_data_clean$player1_first_serve_in)
+# Break points percentage difference
 tennis_data_clean$breakpoint_save_pct_diff <- with(tennis_data_clean, 
     ifelse(player0_breakpoints_faced == 0, 0, player0_breakpoints_saved / player0_breakpoints_faced) -
     ifelse(player1_breakpoints_faced == 0, 0, player1_breakpoints_saved / player1_breakpoints_faced)
 )
-
 
 # Calculate the ratios of service points won to service games held for both players
 tennis_data_clean$player0_serve_points_won_to_games_held_ratio <- ifelse(tennis_data_clean$player0_service_games_held == 0, NA, tennis_data_clean$player0_servepointswon / tennis_data_clean$player0_service_games_held)
@@ -460,7 +476,6 @@ tennis_data_clean$rank_points_diff <- tennis_data_clean$player0_rank_points - te
 ```
 
 ```{r}
-# Feature selection
 tennis_data_clean <- tennis_data_clean %>%
   select(-player0_age, -player1_age, -player0_height, -player1_height, -player0_first_serve_won, -player0_first_serve_in, -player1_first_serve_won, -player1_first_serve_in, -player0_second_serve_won, -player1_second_serve_won, -player1_rank, -player0_rank, -player0_rank_points, -player1_rank_points,
   -player0_breakpoints_faced,   
@@ -484,59 +499,56 @@ tennis_data_clean <- tennis_data_clean %>%
   )
 ```
 
+Added new features to handle multicolinearity and also to reduce predictor columns
+
+
 ```{r}
-# Understand numeric values
+str(tennis_data_clean)
+```
+
+```{r}
 numeric_vars <- tennis_data_clean[, sapply(tennis_data_clean, is.numeric)]
-numeric_vars
 ```
 
 ```{r}
-# Correlation Matrix
 correlation_matrix <- cor(numeric_vars, use = "complete.obs")
-```
-
-```{r}
-# Correlation Plot
-png("heatmap1.png", width = 800, height = 800)
-corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-dev.off()
-```
-
-```{r}
-threshold <- 0.7
 ```
 
 ```{r}
 correlation_matrix_no_diag <- correlation_matrix
 diag(correlation_matrix_no_diag) <- 0
-```
-
-```{r}
 highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
 highly_correlated_pairs
 ```
 
+After removing some variables and feature engineering for others no highly correlated variables
+
 ```{r}
-highly_correlated_vars <- unique(rownames(highly_correlated_pairs))
-highly_correlated_vars
+png("heatmap.png", width = 800, height = 800)
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+dev.off()
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 ```
 
 ```{r}
-unique(final_data$best_of)
+str(tennis_data_clean)
 ```
 
 ```{r}
+# For all numerical variables using mean for missing values
 numeric_vars <- sapply(tennis_data_clean, is.numeric)
 for (col in colnames(tennis_data_clean)[numeric_vars]) {
   tennis_data_clean[[col]] <- ifelse(is.na(tennis_data_clean[[col]]), mean(tennis_data_clean[[col]], na.rm = TRUE), tennis_data_clean[[col]])
 }
 ```
 
+
 ```{r}
 # Drop rows with missing values in player0_hand or player1_hand
 tennis_data_clean <- tennis_data_clean[!is.na(tennis_data_clean$player0_hand) & !is.na(tennis_data_clean$player1_hand), ]
 
 ```
+
 
 ```{r}
 # Analyze missing values in the dataset
@@ -550,7 +562,13 @@ print(missing_values)
 ```
 
 ```{r}
-# Convert categorical variables to factors
+# Sanity check
+str(tennis_data_clean)
+```
+
+
+```{r}
+# Converting all categorical variables to factors
 tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
 tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
 tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
@@ -558,20 +576,26 @@ tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
 ```
 
 ```{r}
-#Setting the seed & split the dataset into Train and Test
+# sanity check
+str(tennis_data_clean)
+```
+
+```{r}
+# spliting the data set into train and test
 set.seed(123)
 trainIndex <- createDataPartition(tennis_data_clean$winner, p = .7, list = FALSE, times = 1)
 train_set <- tennis_data_clean[trainIndex, ]
 test_set <- tennis_data_clean[-trainIndex, ]
 ```
 
+# Modeling 
+
+## Logistic Regression
 ```{r}
-# Logistic regression model
 logistic_model <- glm(winner ~., family = binomial(link = "logit"), data = train_set)
 ```
 
 ```{r}
-# Prediction using Test dataset & confusion matrix
 predictions <- predict(logistic_model, test_set, type = "response")
 predicted_classes <- ifelse(predictions > 0.5, 1, 0)
 predicted_classes <- factor(ifelse(predictions > 0.5, 1, 0), levels = c(0, 1))
@@ -580,13 +604,15 @@ cm <- confusionMatrix(predicted_classes, test_set$winner)
 ```
 
 ```{r}
-# Rename the axis
+cm
+```
+
+```{r}
 cm_df <- as.data.frame(cm$table)
 colnames(cm_df) <- c("Prediction", "Reference", "n")
 ```
 
 ```{r}
-# Confusion matrix plot
 plot_confusion_matrix <- function(cm_df) {
   ggplot(data = cm_df, aes(x = Reference, y = Prediction, fill = n)) +
     geom_tile() +
@@ -602,9 +628,7 @@ plot_confusion_matrix <- function(cm_df) {
 plot_cm <- plot_confusion_matrix(cm_df)
 print(plot_cm)
 ```
-
 ```{r}
-# Accuracy, Precision, Recall & F1-score
 accuracy <- cm$overall["Accuracy"]
 sensitivity <- cm$byClass["Sensitivity"]
 specificity <- cm$byClass["Specificity"]
@@ -617,23 +641,16 @@ cat("F1-score: ", f1_score, "\n")
 
 ```
 
-
 ```{r}
-# ROC plot
 roc_curve <- roc(test_set$winner, predictions)
 plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
 lines(x = c(0, 1), y = c(0, 1), col = "red")
 roc_auc <- auc(roc_curve)
-
 ```
-
 
 ```{r}
-# Split data into training and testing sets and SVM Model
-ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
-svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl, tuneGrid = expand.grid(C = c(0.01, 0.1, 1, 10, 100)))
+vif(logistic_model)
 ```
-
 
 ```{r}
 train_set$winner <- as.factor(train_set$winner)
@@ -642,29 +659,64 @@ levels(train_set$winner) <- c("Winner_0", "Winner_1")
 levels(test_set$winner) <- c("Winner_0", "Winner_1")
 ```
 
+
+
+
 ```{r}
-# Random Forest Model
+# Set up ctrl object for 3 times repeated 10 fold cross validation
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+# Train SVM model using train set
+svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl)
+```
+
+```{r}
+svm_model
+```
+
+```{r}
+# Predict winner using SVM model on test set
+svm_pred <- predict(svm_model, newdata = test_set)
+
+# Evaluate performance of SVM model using confusion matrix
+conf_matrix <- confusionMatrix(svm_pred, test_set$winner)
+conf_matrix
+
+# Calculate accuracy, precision, recall, and F1-score
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy of SVM model:", round(accuracy, 4)))
+precision <- conf_matrix$byClass['Pos Pred Value']
+print(paste("precision of SVM model:", round(precision, 4)))
+recall <- conf_matrix$byClass['Sensitivity']
+print(paste("recall of SVM model:", round(recall, 4)))
+f1_score <- conf_matrix$byClass['F1']
+print(paste("f1_score of SVM model:", round(f1_score, 4)))
+```
+
+```{r}
+# Set up cross-validation control with 10 folds
 cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final", classProbs = TRUE, summaryFunction = twoClassSummary)
-set.seed(123)
+
+# Train the random forest model using the training set
 random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
+```
+
+
+```{r}
 print(random_forest_model)
 ```
 
 ```{r}
-# Prediction using Test dataset
+# Predict winners using the random forest model on test set
 rf_predictions <- predict(random_forest_model, newdata = test_set)
 ```
 
 
 ```{r}
-# Confusion Matrix and Accuracy, Precision, Recall & F1-score
-confusionMatrix(rf_predictions, test_set$winner)
-
-# Calculate accuracy, precision, recall, and F1-score
+# Compute the confusion matrix for the random forest model predictions to Calculate accuracy, precision, recall, and F1-score
 rf_cm <- confusionMatrix(rf_predictions, test_set$winner)
-accuracy <- cm$overall['Accuracy']
-precision <- cm$byClass['Pos Pred Value']
-recall <- cm$byClass['Sensitivity']
+accuracy <- rf_cm$overall['Accuracy']
+precision <- rf_cm$byClass['Pos Pred Value']
+recall <- rf_cm$byClass['Sensitivity']
 f1_score <- 2 * (precision * recall) / (precision + recall)
 
 cat("Accuracy: ", accuracy, "\n")
@@ -672,26 +724,14 @@ cat("Precision: ", precision, "\n")
 cat("Recall: ", recall, "\n")
 cat("F1-score: ", f1_score, "\n")
 
+
 ```
 
+
 ```{r}
-# Rename the axis
+# Get the confusion matrix plot
 rf_cm_df <- as.data.frame(rf_cm$table)
 colnames(rf_cm_df) <- c("Prediction", "Reference", "n")
-
 rf_plot_cm <- plot_confusion_matrix(rf_cm_df)
 print(rf_plot_cm)
-```
-
-```{r}
-# Create the confusion matrix data frame
-cm_values <- c(12995, 2352, 2400, 13210)
-cm_df <- data.frame(
-  Prediction = rep(c("Winner_0", "Winner_1"), each = 2),
-  Reference = rep(c("Winner_0", "Winner_1"), times = 2),
-  n = cm_values
-)
-
-# Use the provided function to plot the confusion matrix
-plot_confusion_matrix(cm_df)
 ```
