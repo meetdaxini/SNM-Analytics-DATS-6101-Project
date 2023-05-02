@@ -347,6 +347,19 @@ As expected winner first serve winning percentage is quite higher
 str(data)
 ```
 
+
+
+```{r}
+#Distribution Graphs for all numeric variables
+num_bins <- 10
+for (i in names(data)) {
+  if (is.numeric(data[[i]])) {
+    hist(data[[i]], num_bins, density=TRUE, col='blue', main=paste0("Data Distribution for ", i),
+         xlab=i, ylab="Density")
+  }
+}
+```
+
 ```{r}
 data = data[sample(1:nrow(data)), ]
 ```
@@ -522,6 +535,7 @@ png("heatmap1.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
 ```
+
 
 
 ```{r}
