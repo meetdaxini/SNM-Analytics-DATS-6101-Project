@@ -1,21 +1,4 @@
 ---
-title: "Tennis Match Outcome Predictions"
-author: "Team: SNM Analytics"
-# date: "today"
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    code_folding: hide
-    number_sections: false
-    toc: yes
-    toc_depth: 3
-    toc_float: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
----
-
----
 title: "Predicting Tennis Match Outcomes: A Data-Driven Approach to the Game"
 author: "Team: SNM Analytics"
 # date: "today"
@@ -37,7 +20,7 @@ output:
 ```{r init, include=F}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 options(scientific = T, digits = 3)
-# Loading libraries
+# Loading the required libraries
 library(ezids)
 library(dplyr)
 library(tidyverse)
@@ -49,8 +32,6 @@ library(corrplot)
 library(pROC)
 library(e1071)
 ```
-
-# Introduction
 
 ## Project Overview
 
@@ -77,13 +58,16 @@ for (year in 1968:2023) {
 }
 ```
 
-
 ```{r}
+# Understand the structure of the dataset
 str(data)
 ```
 
-
-## Dataset Description
+```{r}
+rows <- nrow(data)
+cols <- ncol(data)
+```
+Our data set has `r rows` observations and `r cols` variables
 
 The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
 
@@ -150,18 +134,22 @@ ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
 
 
 ```{r}
-kable(non_null_stats, digits = 2)
+nodatastat <- kable(non_null_stats, digits = 2)
 ```
+The table shows that there are no significant data available from 1968 to 1990
+`r nodatastat`
 
 The Jeff Sackman Dataset contains multiple sets of files. We use the Sackman_tennis_atp-master project which contains match level
 statistics from the year 1968. Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
 
 ```{r}
+#Filtering 1968-1990 data
 data <- data %>% filter(year >= 1991)
 ```
 
 
 ```{r}
+# Understand the structure of the data
 str(data)
 ```
 
@@ -190,10 +178,8 @@ missing_values_by_year <- data %>%
 print(missing_values_by_year)
 ```
 
-
-Renamed the Variables for better understanding
-
 ```{r}
+# Renamed the Variables for better understanding
 data <- data %>% 
   rename(tournament_id = tourney_id,
          tournament_name = tourney_name,
@@ -225,6 +211,7 @@ data <- data %>%
 
 
 ```{r}
+# Summary of the data
 summary(data)
 ```
 
@@ -284,8 +271,7 @@ ggplot(winner_loser_age, aes(x = Role, y = Age, fill = Role)) +
   theme(legend.position = "none")
 ```
 
-age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
-
+Age distribution for "Losers" is wider than "Winners", although mean value is quite the same: younger and olders players are more likely to loose matches.
 
 ```{r}
 
@@ -307,18 +293,13 @@ ggplot() +
 Ace Distribution between losers and winners.
 
 ```{r}
-str(data)
-```
-
-```{r}
+# Adding new columns
 filtered_data <- data %>%
   mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
          winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
          loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
          loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
-```
 
-```{r}
 filtered_data
 ```
 
@@ -344,12 +325,6 @@ print(box_plot)
 As expected winner first serve winning percentage is quite higher
 
 ```{r}
-str(data)
-```
-
-
-
-```{r}
 #Distribution Graphs for all numeric variables
 num_bins <- 10
 for (i in names(data)) {
@@ -363,13 +338,6 @@ for (i in names(data)) {
 ```{r}
 data = data[sample(1:nrow(data)), ]
 ```
-
-
-```{r}
-str(data)
-```
-
-
 
 ```{r}
 # Determine the number of rows in half the dataset
@@ -399,6 +367,7 @@ renamed_data <- rbind(first_half, second_half)
 
 
 ```{r}
+# Understand the structure of the renamed data
 str(renamed_data)
 ```
 
@@ -408,18 +377,24 @@ str(renamed_data)
 ```
 
 ```{r}
+# Renaming the final variable
 final_data = renamed_data
 ```
 
 ```{r}
-ncol(final_data)
+# Number of columns of Final data
+col_final <- ncol(final_data)
 ```
 
+There are `r col_final` number of columns in the dataset
+
 ```{r}
+# Reading the saved dataset
 final_data = read_csv("tennis_data.csv", show_col_types = FALSE)
 ```
 
 ```{r}
+# Correlation map of the numeric variables
 numeric_vars <- final_data[, sapply(final_data, is.numeric)]
 correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 png("heatmap_full.png", width = 800, height = 800)
@@ -429,15 +404,13 @@ dev.off()
 
 
 ```{r}
+# CLean dataset for analysis
 tennis_data_clean <- final_data %>%
   select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
 ```
 
 ```{r}
-ncol(tennis_data_clean)
-```
-
-```{r}
+# Understand the unique values of player 0 hand
 unique(tennis_data_clean$player0_hand)
 ```
 
@@ -454,8 +427,6 @@ ggplot(data = tennis_data_clean, aes(x = surface, y = player0_aces,fill = surfac
 ```
 
 From the boxplot we can see the player ace per court and the grass courts have the highest number of aces per game and clay court have the least.This indicates that the player has to focus more on aces in the grass court than other surfaces.
-
-# Feature Engineering and Selection
 
 ```{r}
 # Serve percentage difference
@@ -475,8 +446,6 @@ tennis_data_clean$player1_serve_points_won_to_games_held_ratio <- ifelse(tennis_
 # Calculate the difference between the two ratios
 tennis_data_clean$serve_points_won_to_games_held_diff <- tennis_data_clean$player0_serve_points_won_to_games_held_ratio - tennis_data_clean$player1_serve_points_won_to_games_held_ratio
 
-
-
 # Age difference
 tennis_data_clean$age_diff <- tennis_data_clean$player0_age - tennis_data_clean$player1_age
 
@@ -488,11 +457,10 @@ tennis_data_clean$rank_diff <- tennis_data_clean$player0_rank - tennis_data_clea
 
 # Rank points difference
 tennis_data_clean$rank_points_diff <- tennis_data_clean$player0_rank_points - tennis_data_clean$player1_rank_points
-
-
 ```
 
 ```{r}
+# Feature selection
 tennis_data_clean <- tennis_data_clean %>%
   select(-player0_age, -player1_age, -player0_height, -player1_height, -player0_first_serve_won, -player0_first_serve_in, -player1_first_serve_won, -player1_first_serve_in, -player0_second_serve_won, -player1_second_serve_won, -player1_rank, -player0_rank, -player0_rank_points, -player1_rank_points,
   -player0_breakpoints_faced,   
@@ -517,26 +485,22 @@ tennis_data_clean <- tennis_data_clean %>%
 ```
 
 ```{r}
-str(tennis_data_clean)
-```
-
-```{r}
+# Understand numeric values
 numeric_vars <- tennis_data_clean[, sapply(tennis_data_clean, is.numeric)]
 numeric_vars
 ```
 
 ```{r}
+# Correlation Matrix
 correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 ```
 
-
 ```{r}
+# Correlation Plot
 png("heatmap1.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 dev.off()
 ```
-
-
 
 ```{r}
 threshold <- 0.7
@@ -562,24 +526,17 @@ unique(final_data$best_of)
 ```
 
 ```{r}
-str(tennis_data_clean)
-```
-
-```{r}
 numeric_vars <- sapply(tennis_data_clean, is.numeric)
 for (col in colnames(tennis_data_clean)[numeric_vars]) {
   tennis_data_clean[[col]] <- ifelse(is.na(tennis_data_clean[[col]]), mean(tennis_data_clean[[col]], na.rm = TRUE), tennis_data_clean[[col]])
 }
 ```
 
-
-
 ```{r}
 # Drop rows with missing values in player0_hand or player1_hand
 tennis_data_clean <- tennis_data_clean[!is.na(tennis_data_clean$player0_hand) & !is.na(tennis_data_clean$player1_hand), ]
 
 ```
-
 
 ```{r}
 # Analyze missing values in the dataset
@@ -593,16 +550,7 @@ print(missing_values)
 ```
 
 ```{r}
-str(tennis_data_clean)
-```
-
-
-
-```{r}
-#tennis_data_clean$winner <- as.factor(tennis_data_clean$winner)
-```
-
-```{r}
+# Convert categorical variables to factors
 tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
 tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
 tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
@@ -610,23 +558,20 @@ tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
 ```
 
 ```{r}
-str(tennis_data_clean)
-```
-
-```{r}
+#Setting the seed & split the dataset into Train and Test
 set.seed(123)
 trainIndex <- createDataPartition(tennis_data_clean$winner, p = .7, list = FALSE, times = 1)
 train_set <- tennis_data_clean[trainIndex, ]
 test_set <- tennis_data_clean[-trainIndex, ]
-
-
 ```
 
 ```{r}
+# Logistic regression model
 logistic_model <- glm(winner ~., family = binomial(link = "logit"), data = train_set)
 ```
 
 ```{r}
+# Prediction using Test dataset & confusion matrix
 predictions <- predict(logistic_model, test_set, type = "response")
 predicted_classes <- ifelse(predictions > 0.5, 1, 0)
 predicted_classes <- factor(ifelse(predictions > 0.5, 1, 0), levels = c(0, 1))
@@ -635,17 +580,13 @@ cm <- confusionMatrix(predicted_classes, test_set$winner)
 ```
 
 ```{r}
-
-cm
-```
-
-```{r}
+# Rename the axis
 cm_df <- as.data.frame(cm$table)
 colnames(cm_df) <- c("Prediction", "Reference", "n")
-
 ```
 
 ```{r}
+# Confusion matrix plot
 plot_confusion_matrix <- function(cm_df) {
   ggplot(data = cm_df, aes(x = Reference, y = Prediction, fill = n)) +
     geom_tile() +
@@ -661,7 +602,9 @@ plot_confusion_matrix <- function(cm_df) {
 plot_cm <- plot_confusion_matrix(cm_df)
 print(plot_cm)
 ```
+
 ```{r}
+# Accuracy, Precision, Recall & F1-score
 accuracy <- cm$overall["Accuracy"]
 sensitivity <- cm$byClass["Sensitivity"]
 specificity <- cm$byClass["Specificity"]
@@ -676,6 +619,7 @@ cat("F1-score: ", f1_score, "\n")
 
 
 ```{r}
+# ROC plot
 roc_curve <- roc(test_set$winner, predictions)
 plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
 lines(x = c(0, 1), y = c(0, 1), col = "red")
@@ -685,7 +629,7 @@ roc_auc <- auc(roc_curve)
 
 
 ```{r}
-# Split data into training and testing sets
+# Split data into training and testing sets and SVM Model
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl, tuneGrid = expand.grid(C = c(0.01, 0.1, 1, 10, 100)))
 ```
@@ -699,24 +643,21 @@ levels(test_set$winner) <- c("Winner_0", "Winner_1")
 ```
 
 ```{r}
+# Random Forest Model
 cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final", classProbs = TRUE, summaryFunction = twoClassSummary)
 set.seed(123)
 random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
 print(random_forest_model)
 ```
 
-
 ```{r}
-print(random_forest_model)
-```
-
-```{r}
+# Prediction using Test dataset
 rf_predictions <- predict(random_forest_model, newdata = test_set)
 ```
 
 
 ```{r}
-
+# Confusion Matrix and Accuracy, Precision, Recall & F1-score
 confusionMatrix(rf_predictions, test_set$winner)
 
 # Calculate accuracy, precision, recall, and F1-score
@@ -733,16 +674,14 @@ cat("F1-score: ", f1_score, "\n")
 
 ```
 
-
 ```{r}
-
+# Rename the axis
 rf_cm_df <- as.data.frame(rf_cm$table)
 colnames(rf_cm_df) <- c("Prediction", "Reference", "n")
 
 rf_plot_cm <- plot_confusion_matrix(rf_cm_df)
 print(rf_plot_cm)
 ```
-
 
 ```{r}
 # Create the confusion matrix data frame
