@@ -34,18 +34,29 @@ library(e1071)
 library(car)
 ```
 
-# Introduction
+# Chapter 1: Introduction
+
+## Background to Tennis
+
+Tennis is a global sport with admirers from all over the world. Tennis players arrived from all over the world, with varying playing styles and specializations. Every tennis match is defined by a plethora of variables, making the sport both entertaining and unexpected.The outcome of a match can be highly valuable for a variety of reasons, such as calculating the odds of bets or better arranging the season of sportsmen, who would undoubtedly be more interested in participating in competitions with higher chances of winning.
+
+<center>
+
+![R Markdown Logo](tennis.png)
+
+</center>
 
 ## Project Overview
 
-In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
+Jeff Sackmann, an author and sports data aggregator, provided the dataset for this project. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Following data processing, we tested various models for predicting match outcomes. To achieve our goal, we used a number of models ranging from Logistic Regression to SVM. Finally, after some fine-tuning of these models, we were able to create models that provided the best predictions. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
 
-## Our Research Question:
+## Research Question:
 
-What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
+Why is it critical to predict the outcome of a tennis match?
 
-This question not only focuses on prediction accuracy but also emphasizes the importance of understanding which factors contribute the most to the outcome. By answering this question, you can gain insights into the game and potentially develop strategies for players or coaches to improve performance.
+It is critical to determine the key factors that influence the outcome of a tennis match. Researchers and practitioners can develop better predictions about match outcomes by studying which aspects are most influential, which can inform strategy for coaches, players, and analysts. Identifying the most relevant aspects can also provide insights into the underlying dynamics of tennis matches, assisting in the creation of more successful training and coaching tactics.To answer this question, we have come up with a research question.
 
+__What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?__
 
 ```{r}
 # Initialize an empty data frame
@@ -61,15 +72,11 @@ for (year in 1968:2023) {
 }
 ```
 
-
-```{r}
-str(data)
-```
-
-
-## Dataset Description
+# Chapter 2: Dataset & EDA
 
 The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
+
+## Dataset Description
 
 Some of the key features in the dataset are:
 
@@ -78,35 +85,32 @@ Some of the key features in the dataset are:
 3. Player rankings: ATP rankings and ranking points.
 4. Match statistics: aces, double faults, first serves in, first serve points won, etc.
 
-# Data Preprocessing/Cleaning & EDA
+```{r}
+str(data)
+```
+## Data Preprocessing
+
+### Data Cleaning
+
+This code cleans data and conducts exploratory data analysis on a tennis match statistics dataset. The process starts by transforming a character column (tourney_date) into a Date object and extracting the year component into a new column (year). It then selects a selection of numeric columns from the dataset that contain match statistics and computes the percentage of non-null values every year for each column using the dplyr package's mean() and across() functions. The resulting summary data is then gathered into a long format for easier charting using the gather() function. This code can help guide further studies and modeling efforts by finding trends and patterns in missing data for each match statistic over time.
 
 ```{r}
 # Convert tourney_date character type to a Date object
 data$tourney_date <- as.Date(as.character(data$tourney_date), "%Y%m%d")
-```
 
-
-```{r}
 # Extract year from tourney_date
 data$year <- year(data$tourney_date)
-```
 
-
-```{r}
 # Select the relevant columns (numeric match statistics)
 stats_columns <- c("w_ace", "w_df", "w_svpt", "w_1stIn", "w_1stWon", "w_2ndWon", "w_SvGms", "w_bpSaved", "w_bpFaced",
                    "l_ace", "l_df", "l_svpt", "l_1stIn", "l_1stWon", "l_2ndWon", "l_SvGms", "l_bpSaved", "l_bpFaced")
 
-```
 
-```{r}
 # Calculate the percentage of non-null values per year for each numeric variable
 non_null_stats <- data %>%
   group_by(year) %>%
   summarize(across(all_of(stats_columns), ~mean(!is.na(.)) * 100, .names = "pct_non_null_{col}"))
-```
 
-```{r}
 # Gather the data into a long format for easy plotting
 non_null_stats_long <- non_null_stats %>%
   gather(key = "variable", value = "pct_non_null", -year)
@@ -133,24 +137,18 @@ ggplot(non_null_stats_long, aes(x = year, y = pct_non_null, color = variable)) +
 
 ```
 
-
-```{r}
-xkabledply(non_null_stats, digits = 2)
-```
-
 Since more extensive match level statistics are only available from the year 1991, we concentrate on the ATP match level files from 1991 to 2023.
 
 ```{r}
 #Filtering out 1968-1990 data
 data <- data %>% filter(year >= 1991)
-```
 
-
-```{r}
 # Sanity check
 str(data)
 ```
+After filtering out the data, the number of observations are 103245 of 50 variables.
 
+### NULLS Identification
 
 ```{r}
 # Analyze missing values in the dataset
@@ -162,22 +160,9 @@ missing_values <- data %>%
 
 print(missing_values)
 ```
+### Variables Renaming
 
-
-```{r}
-# Analyze missing values by year
-missing_values_by_year <- data %>%
-  gather(variable, value, -tourney_id, -tourney_name, -tourney_date, -match_num, -winner_id, -loser_id, -year) %>%
-  mutate(is_missing = is.na(value)) %>%
-  group_by(year, variable) %>%
-  summarize(missing_count = sum(is_missing), total_count = n(), missing_percentage = missing_count / total_count * 100) 
-
-print(missing_values_by_year)
-```
-
-## Variables Renaming
-
-Renamed the Variables for better understanding
+It is important to understand the features in the dataset. So, the variables are renamed for better understanding
 
 ```{r}
 data <- data %>% 
@@ -207,14 +192,11 @@ data <- data %>%
          loser_service_games_held = l_SvGms,
          loser_breakpoints_saved = l_bpSaved,
          loser_breakpoints_faced = l_bpFaced)
+
+colnames(data)
 ```
 
-
-```{r}
-summary(data)
-```
-
-###  Tennis Surfaces Distribution
+## Graphs & Plots
 
 ```{r}
 # Define a custom color palette for the surfaces
@@ -244,7 +226,7 @@ ggplot(data, aes(x = surface, fill = surface)) +
 
 ```
 
-From The Histogram we can see that majority of the atp matches from 1991 are held in hard courts.  
+From The Histogram we can see that majority of the atp matches from 1991 are held in hard courts and the lowest are in Carpet.  
 
 ```{r}
 # Filter out rows with missing winner_age and loser_age values
@@ -293,17 +275,14 @@ ggplot() +
 The Density graph shows the ace distribution for winners and losers.This indicates winners having more no of aces compared to the losers which is a one of key factor in deciding the game.
 
 ```{r}
-# Sanity check
-str(data)
-```
-
-```{r}
 filtered_data <- data %>%
   mutate(winner_first_serve_pct = winner_first_serve_won / winner_first_serve_in,
          winner_second_serve_pct = winner_second_serve_won / (winner_servepointswon - winner_first_serve_in),
          loser_first_serve_pct = loser_first_serve_won / loser_first_serve_in,
          loser_second_serve_pct = loser_second_serve_won / (loser_servepointswon - loser_first_serve_in))
 ```
+
+Understand the dataset with renamed columns to make more sense.
 
 ```{r}
 xkabledplyhead(filtered_data)
@@ -335,14 +314,6 @@ In tennis, "winner_first_serve_pct" typically refers to the percentage of first 
 data <- data[sample(1:nrow(data)), ]
 ```
 
-
-```{r}
-#Sanity check
-str(data)
-```
-
-
-
 ```{r}
 # Determine the number of rows in half the dataset
 half_nrow <- nrow(data) %/% 2
@@ -369,24 +340,21 @@ second_half$winner <- 1
 renamed_data <- rbind(first_half, second_half)
 ```
 
-
-```{r}
-# Understand the structure of the renamed data
-str(renamed_data)
-```
-
-```{r}
-# Outputing all the randomly shuffled data renamed to a file
-# write.csv(renamed_data, "tennis_data.csv", row.names = FALSE)
-```
-
 ```{r}
 final_data <- read_csv("tennis_data.csv", show_col_types = FALSE)
 ```
 
-# Feature Engineering and Selection
+# Chapter 3: Model Development 
 
+We used a number of models like Logistic Regression, SVM and Random forest to predict the outcome of a tennis match.
 
+## Features clean-up & Analysis
+
+To predict accurately, we had to clean up the columns by merging and deleting based the correlation plot and other feature selection technique.
+
+### Features clean-up
+
+Correlation plot of the complete dataset and its .
 ```{r}
 # selects only the numeric columns from the final_data
 numeric_vars <- final_data[, sapply(final_data, is.numeric)]
@@ -396,7 +364,7 @@ correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 
 png("heatmap_full.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-dev.off()
+#dev.off()
 ```
 
 ```{r}
@@ -415,14 +383,14 @@ diag(correlation_matrix_no_diag) <- 0
 
 ```{r}
 highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
-highly_correlated_pairs
 ```
+These are the highly correlated variables to the target variable.
 
 ```{r}
 highly_correlated_vars <- unique(rownames(highly_correlated_pairs))
 highly_correlated_vars
 ```
-we can remove some of the multicollinear variables like draw size and for other we can combine and create new variables to handle multicolinearity
+We have to remove some of the multicollinear variables like draw size and for other we can combine and create new variables to handle multicolinearity.
 
 ```{r}
 # Removing fields that are not required for the analysis
@@ -430,11 +398,9 @@ tennis_data_clean <- final_data %>%
   select(-tournament_id, -tournament_name, -tournament_date, -year, -player0_seed, -player1_seed, -player0_id, -player1_id, -player0_name, -player1_name, -match_num, -score, -round, -draw_size, -player1_country, -player0_country, -player0_entry, -player1_entry, -minutes)
 ```
 
-```{r}
-ncol(tennis_data_clean)
-```
+### Feature Engineering & Selection
 
-
+Adding new feature to the dataset to make to more understandable, reduce multicolinearity and check the correlation of the new features. 
 
 ```{r}
 
@@ -491,13 +457,6 @@ tennis_data_clean <- tennis_data_clean %>%
   )
 ```
 
-Added new features to handle multicolinearity and also to reduce predictor columns
-
-
-```{r}
-str(tennis_data_clean)
-```
-
 ```{r}
 numeric_vars <- tennis_data_clean[, sapply(tennis_data_clean, is.numeric)]
 ```
@@ -510,7 +469,6 @@ correlation_matrix <- cor(numeric_vars, use = "complete.obs")
 correlation_matrix_no_diag <- correlation_matrix
 diag(correlation_matrix_no_diag) <- 0
 highly_correlated_pairs <- which(abs(correlation_matrix_no_diag) > threshold, arr.ind = TRUE)
-highly_correlated_pairs
 ```
 
 After removing some variables and feature engineering for others no highly correlated variables
@@ -518,12 +476,8 @@ After removing some variables and feature engineering for others no highly corre
 ```{r}
 png("heatmap.png", width = 800, height = 800)
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-dev.off()
+#dev.off()
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-```
-
-```{r}
-str(tennis_data_clean)
 ```
 
 ```{r}
@@ -534,13 +488,13 @@ for (col in colnames(tennis_data_clean)[numeric_vars]) {
 }
 ```
 
-
 ```{r}
 # Drop rows with missing values in player0_hand or player1_hand
 tennis_data_clean <- tennis_data_clean[!is.na(tennis_data_clean$player0_hand) & !is.na(tennis_data_clean$player1_hand), ]
 
 ```
 
+Check the dataset for Nulls before modelling.
 
 ```{r}
 # Analyze missing values in the dataset
@@ -554,22 +508,11 @@ print(missing_values)
 ```
 
 ```{r}
-# Sanity check
-str(tennis_data_clean)
-```
-
-
-```{r}
 # Converting all categorical variables to factors
 tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
 tennis_data_clean$tournament_level <- as.factor(tennis_data_clean$tournament_level)
 tennis_data_clean$player0_hand <- as.factor(tennis_data_clean$player0_hand)
 tennis_data_clean$player1_hand <- as.factor(tennis_data_clean$player1_hand)
-```
-
-```{r}
-# sanity check
-str(tennis_data_clean)
 ```
 
 ```{r}
@@ -580,169 +523,68 @@ train_set <- tennis_data_clean[trainIndex, ]
 test_set <- tennis_data_clean[-trainIndex, ]
 ```
 
-# Modeling 
+## Modelling
 
-## Logistic Regression
-```{r}
-logistic_model <- glm(winner ~., family = binomial(link = "logit"), data = train_set)
-```
+### Logistic Regression
 
-```{r}
-predictions <- predict(logistic_model, test_set, type = "response")
-predicted_classes <- ifelse(predictions > 0.5, 1, 0)
-predicted_classes <- factor(ifelse(predictions > 0.5, 1, 0), levels = c(0, 1))
-test_set$winner <- factor(test_set$winner, levels = c(0, 1))
-cm <- confusionMatrix(predicted_classes, test_set$winner)
-```
+Logistic regression is a statistical modeling technique that uses one or more predictor variables to predict the likelihood of a binary outcome variable. When the dependent variable is categorical and binary (e.g., yes or no, 0 or 1, true or false), this sort of regression analysis is used.
 
-```{r}
-cm
-```
+<center>
+![R Markdown Logo](LM.png)
+</center>
 
-```{r}
-cm_df <- as.data.frame(cm$table)
-colnames(cm_df) <- c("Prediction", "Reference", "n")
-```
+<center>
+![R Markdown Logo](LM_Conf.png)
+</center>
 
-```{r}
-plot_confusion_matrix <- function(cm_df) {
-  ggplot(data = cm_df, aes(x = Reference, y = Prediction, fill = n)) +
-    geom_tile() +
-    geom_text(aes(label = n), color = "black") +
-    scale_fill_gradient(low = "white", high = "steelblue") +
-    theme_minimal() +
-    xlab("Actual") +
-    ylab("Predicted") +
-    ggtitle("Confusion Matrix") +
-    theme(plot.title = element_text(hjust = 0.5))
-}
+<center>
+![R Markdown Logo](LM_ROC.png)
+</center>
 
-plot_cm <- plot_confusion_matrix(cm_df)
-print(plot_cm)
-```
-```{r}
-accuracy <- cm$overall["Accuracy"]
-sensitivity <- cm$byClass["Sensitivity"]
-specificity <- cm$byClass["Specificity"]
-f1_score <- cm$byClass["F1"]
+The Variance Inflation Factor is a regression analysis metric that quantifies the degree of multicollinearity between predictor variables in a model. In other words, it quantifies the extent to which the variance of the predicted regression coefficients is exaggerated due to the presence of correlated factors.
 
-cat("Accuracy: ", accuracy, "\n")
-cat("Sensitivity (Recall): ", sensitivity, "\n")
-cat("Specificity: ", specificity, "\n")
-cat("F1-score: ", f1_score, "\n")
+<center>
+![R Markdown Logo](vif_lm.png)
+</center>
 
-```
+### Support Vector Machine
 
-```{r}
-roc_curve <- roc(test_set$winner, predictions)
-plot(roc_curve, col = "blue", main = "ROC Curve for Logistic Regression Model")
-lines(x = c(0, 1), y = c(0, 1), col = "red")
-roc_auc <- auc(roc_curve)
-```
+SVMs are a form of machine learning method that can be used for classification, regression, and outlier detection. SVM is a powerful and adaptable technique for modeling complex non-linear connections between variables.
 
-```{r}
-vif(logistic_model)
-```
+<center>
+![R Markdown Logo](SVM.png)
+</center>
 
-```{r}
-train_set$winner <- as.factor(train_set$winner)
-test_set$winner <- as.factor(test_set$winner)
-levels(train_set$winner) <- c("Winner_0", "Winner_1")
-levels(test_set$winner) <- c("Winner_0", "Winner_1")
-```
+<center>
+![R Markdown Logo](SVM_conf.png)
+</center>
 
+### Random Forest Model
 
+Random forest is a machine learning technique that can be used for classification as well as regression. It is an ensemble learning method that makes predictions by combining numerous decision trees. A random subset of the training data and a random subset of the characteristics are used to build each decision tree. This adds unpredictability to the model and helps to avoid overfitting, a major issue with decision trees.
 
+<center>
+![R Markdown Logo](RF.jpg)
+</center>
 
-```{r}
-# Set up ctrl object for 3 times repeated 10 fold cross validation
-ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
-# Train SVM model using train set
-svm_model <- train(winner ~ ., data = train_set, method = "svmLinear", trControl = ctrl)
-```
+<center>
+![R Markdown Logo](rf_conf.jpg)
+</center>
 
-```{r}
-svm_model
-```
+# Chapter 4: Conclusion
 
-```{r}
-# Predict winner using SVM model on test set
-svm_pred <- predict(svm_model, newdata = test_set)
+<center>
+![R Markdown Logo](Conclusion.png)
+</center>
 
-# Evaluate performance of SVM model using confusion matrix
-conf_matrix <- confusionMatrix(svm_pred, test_set$winner)
-conf_matrix
+The performance of three models, namely Logistic Regression, Random Forest, and SVM, were evaluated across different metrics such as accuracy, precision, recall, and F1-score. The results indicate that all three models had similar performance across these metrics, with Logistic Regression and Random Forest slightly outperforming SVM, particularly in terms of F1-score. While SVM has its advantages such as its ability to handle high-dimensional data and its robustness to outliers, Logistic Regression offers better interpretability, faster training time, and ease of implementation. Therefore, depending on the specific requirements of a particular problem, one may choose Logistic Regression or Random Forest over SVM for better performance and ease of implementation.
 
-# Calculate accuracy, precision, recall, and F1-score
-accuracy <- conf_matrix$overall['Accuracy']
-print(paste("Accuracy of SVM model:", round(accuracy, 4)))
-precision <- conf_matrix$byClass['Pos Pred Value']
-print(paste("precision of SVM model:", round(precision, 4)))
-recall <- conf_matrix$byClass['Sensitivity']
-print(paste("recall of SVM model:", round(recall, 4)))
-f1_score <- conf_matrix$byClass['F1']
-print(paste("f1_score of SVM model:", round(f1_score, 4)))
-```
+# Chapter 5: References
 
-```{r}
-# Set up cross-validation control with 10 folds
-cv_control <- trainControl(method = "cv", number = 10, savePredictions = "final", classProbs = TRUE, summaryFunction = twoClassSummary)
+[1] B. L. Boulier and H. O. Stekler “Are sports seedings good predictors?: An evaluation,” International Journal of Forecasting, vol. 15, no. 1, pp. 83–91, feb 1999.
 
-# Train the random forest model using the training set
-random_forest_model <- train(winner ~ ., data = train_set, method = "rf", trControl = cv_control, metric = "ROC")
-```
-
-
-```{r}
-print(random_forest_model)
-```
-
-```{r}
-# Predict winners using the random forest model on test set
-rf_predictions <- predict(random_forest_model, newdata = test_set)
-```
-
-
-```{r}
-# Compute the confusion matrix for the random forest model predictions to Calculate accuracy, precision, recall, and F1-score
-rf_cm <- confusionMatrix(rf_predictions, test_set$winner)
-accuracy <- rf_cm$overall['Accuracy']
-precision <- rf_cm$byClass['Pos Pred Value']
-recall <- rf_cm$byClass['Sensitivity']
-f1_score <- 2 * (precision * recall) / (precision + recall)
-
-cat("Accuracy: ", accuracy, "\n")
-cat("Precision: ", precision, "\n")
-cat("Recall: ", recall, "\n")
-cat("F1-score: ", f1_score, "\n")
-
-
-```
-
-
-```{r}
-# Get the confusion matrix plot
-rf_cm_df <- as.data.frame(rf_cm$table)
-colnames(rf_cm_df) <- c("Prediction", "Reference", "n")
-rf_plot_cm <- plot_confusion_matrix(rf_cm_df)
-print(rf_plot_cm)
-```
-### Conclusion
-
-All three models exhibit similar performance across accuracy, precision, recall, and F1-score
-
-Logistic Regression and Random Forest performed slightly better than SVM, particularly in terms of F1-score.
-
-Logistic Regression offers better interpretability, training time, and ease of implementation.
-
-
-
-### References
-
-B. L. Boulier and H. O. Stekler “Are sports seedings good predictors?: An evaluation,” International Journal of Forecasting, vol. 15, no. 1, pp. 83–91, feb 1999.
-
-R. A. Bradley and M. E. Terry, “Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons,”
+[2] R. A. Bradley and M. E. Terry, “Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons,”
 Biometrika, vol. 39, no. 3/4, p. 324, dec 1952.
 
-R. Praet, “Predicting Sport Results by using Recommendation Techniques,” Ph.D. dissertation, Ghent University,
+[3] R. Praet, “Predicting Sport Results by using Recommendation Techniques,” Ph.D. dissertation, Ghent University,
 2016.
