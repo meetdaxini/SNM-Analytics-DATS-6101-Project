@@ -3,21 +3,25 @@ title: "Predicting Tennis Match Outcomes: A Data-Driven Approach to the Game"
 author: "Team: SNM Analytics"
 # date: "today"
 date: "`r Sys.Date()`"
-output:
+output: 
   html_document:
+    theme: "readable"
+    highlight: kate
     code_folding: hide
     number_sections: false
     toc: yes
-    toc_depth: 3
+    toc_depth: 6
     toc_float: yes
+    collapsed: false
+    smooth_scroll: false
+    css: summary_paper.css
   pdf_document:
     toc: yes
     toc_depth: '3'
 ---
 
 
-
-```{r init, include=F}
+```{r init, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 options(scientific = T, digits = 3)
 # Loading the required libraries
@@ -34,29 +38,24 @@ library(e1071)
 library(car)
 ```
 
+![](data_driven_tennis.png)
+
 # Chapter 1: Introduction
 
-## Background to Tennis
+## Background to Tennis and the project
 
-Tennis is a global sport with admirers from all over the world. Tennis players arrived from all over the world, with varying playing styles and specializations. Every tennis match is defined by a plethora of variables, making the sport both entertaining and unexpected.The outcome of a match can be highly valuable for a variety of reasons, such as calculating the odds of bets or better arranging the season of sportsmen, who would undoubtedly be more interested in participating in competitions with higher chances of winning.
-
-<center>
-
-![R Markdown Logo](tennis.png)
-
-</center>
+Tennis is an international sport that captivates people across the globe. Players from diverse backgrounds showcase distinct playing techniques and strengths. A multitude of factors contribute to the excitement and unpredictability of each match. The ability to predict match outcomes holds significant value for many purposes, including imporving and optimizing payers' winning strategies by finding features with greater winning potential. This summary paper, "Predicting Tennis Match Outcomes: A Data-Driven Approach to the Game" delves into these aspects with the context of data science and machine learning.
 
 ## Project Overview
 
-Jeff Sackmann, an author and sports data aggregator, provided the dataset for this project. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1997. Following data processing, we tested various models for predicting match outcomes. To achieve our goal, we used a number of models ranging from Logistic Regression to SVM. Finally, after some fine-tuning of these models, we were able to create models that provided the best predictions. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
+In this analysis, we will examine the Jeff Sackmann tennis ATP match dataset to determine the availability of match-level statistics over the years. The dataset contains information on tennis matches from 1968 to 2023, with more extensive match statistics available starting from 1991. Our goal is to visualize the availability of match statistics and explore the data to understand its structure and contents.
 
-## Research Question:
+## Research Question
 
-Why is it critical to predict the outcome of a tennis match?
+What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?
 
-It is critical to determine the key factors that influence the outcome of a tennis match. Researchers and practitioners can develop better predictions about match outcomes by studying which aspects are most influential, which can inform strategy for coaches, players, and analysts. Identifying the most relevant aspects can also provide insights into the underlying dynamics of tennis matches, assisting in the creation of more successful training and coaching tactics.To answer this question, we have come up with a research question.
+This question not only focuses on prediction accuracy but also emphasizes the importance of understanding which factors contribute the most to the outcome. By answering this question, you can gain insights into the game and potentially develop strategies for players or coaches to improve performance.
 
-__What are the most important features that influence the outcome of a tennis match, and how accurately can we predict the winner of a match using a machine learning model based on these features?__
 
 ```{r}
 # Initialize an empty data frame
@@ -72,11 +71,15 @@ for (year in 1968:2023) {
 }
 ```
 
-# Chapter 2: Dataset & EDA
 
-The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
+```{r}
+str(data)
+```
+
 
 ## Dataset Description
+
+The dataset contains information about tennis matches played between 1963 and 2023, with a total of 189,185 records. It includes 49 columns, which provide information about the players, match statistics, and other relevant details.
 
 Some of the key features in the dataset are:
 
@@ -85,9 +88,8 @@ Some of the key features in the dataset are:
 3. Player rankings: ATP rankings and ranking points.
 4. Match statistics: aces, double faults, first serves in, first serve points won, etc.
 
-```{r}
-str(data)
-```
+# Chapter 2: Data Preprocessing/Cleaning & EDA
+
 ## Data Preprocessing
 
 ### Data Cleaning
@@ -400,8 +402,7 @@ tennis_data_clean <- final_data %>%
 
 ### Feature Engineering & Selection
 
-Adding new feature to the dataset to make to more understandable, reduce multicolinearity and check the correlation of the new features. 
-
+We performed feature engineering to add new features to the dataset, reduce multicollinearity, and check the correlation of the new features. We calculated various differences and ratios to better represent the data, such as serve percentage difference, break points percentage difference, serve points won to games held difference, age difference, height difference, rank difference, and rank points difference.
 ```{r}
 
 # Serve percentage difference
@@ -433,6 +434,7 @@ tennis_data_clean$rank_diff <- tennis_data_clean$player0_rank - tennis_data_clea
 tennis_data_clean$rank_points_diff <- tennis_data_clean$player0_rank_points - tennis_data_clean$player1_rank_points
 ```
 
+Selected relevant features and removed the original variables that were used to create the new features.
 ```{r}
 tennis_data_clean <- tennis_data_clean %>%
   select(-player0_age, -player1_age, -player0_height, -player1_height, -player0_first_serve_won, -player0_first_serve_in, -player1_first_serve_won, -player1_first_serve_in, -player0_second_serve_won, -player1_second_serve_won, -player1_rank, -player0_rank, -player0_rank_points, -player1_rank_points,
@@ -480,6 +482,7 @@ corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust",
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 ```
 
+To handle missing values, replaced missing values in numeric variables with the mean and dropped rows with missing values in the player0_hand and player1_hand variables.
 ```{r}
 # For all numerical variables using mean for missing values
 numeric_vars <- sapply(tennis_data_clean, is.numeric)
@@ -507,6 +510,8 @@ missing_values <- tennis_data_clean %>%
 print(missing_values)
 ```
 
+We converted all categorical variables to factors and split the dataset into training and testing sets.
+
 ```{r}
 # Converting all categorical variables to factors
 tennis_data_clean$surface <- as.factor(tennis_data_clean$surface)
@@ -527,24 +532,25 @@ test_set <- tennis_data_clean[-trainIndex, ]
 
 ### Logistic Regression
 
-Logistic regression is a statistical modeling technique that uses one or more predictor variables to predict the likelihood of a binary outcome variable. When the dependent variable is categorical and binary (e.g., yes or no, 0 or 1, true or false), this sort of regression analysis is used.
+Logistic regression is a statistical modeling technique that uses predictor variables to predict the likelihood of a binary outcome variable "winner".
+
 
 <center>
-![R Markdown Logo](LM.png)
+![](LM.png)
 </center>
 
 <center>
-![R Markdown Logo](LM_Conf.png)
+![](LM_Conf.png)
 </center>
 
 <center>
-![R Markdown Logo](LM_ROC.png)
+![](LM_ROC.png)
 </center>
 
 The Variance Inflation Factor is a regression analysis metric that quantifies the degree of multicollinearity between predictor variables in a model. In other words, it quantifies the extent to which the variance of the predicted regression coefficients is exaggerated due to the presence of correlated factors.
 
 <center>
-![R Markdown Logo](vif_lm.png)
+![](vif_lm.png)
 </center>
 
 ### Support Vector Machine
@@ -552,11 +558,11 @@ The Variance Inflation Factor is a regression analysis metric that quantifies th
 SVMs are a form of machine learning method that can be used for classification, regression, and outlier detection. SVM is a powerful and adaptable technique for modeling complex non-linear connections between variables.
 
 <center>
-![R Markdown Logo](SVM.png)
+![](SVM.png)
 </center>
 
 <center>
-![R Markdown Logo](SVM_conf.png)
+![](SVM_conf.png)
 </center>
 
 ### Random Forest Model
@@ -564,17 +570,17 @@ SVMs are a form of machine learning method that can be used for classification, 
 Random forest is a machine learning technique that can be used for classification as well as regression. It is an ensemble learning method that makes predictions by combining numerous decision trees. A random subset of the training data and a random subset of the characteristics are used to build each decision tree. This adds unpredictability to the model and helps to avoid overfitting, a major issue with decision trees.
 
 <center>
-![R Markdown Logo](RF.jpg)
+![](RF.jpg)
 </center>
 
 <center>
-![R Markdown Logo](rf_conf.jpg)
+![](rf_conf.jpg)
 </center>
 
 # Chapter 4: Conclusion
 
 <center>
-![R Markdown Logo](Conclusion.png)
+![](Conclusion.png)
 </center>
 
 The performance of three models, namely Logistic Regression, Random Forest, and SVM, were evaluated across different metrics such as accuracy, precision, recall, and F1-score. The results indicate that all three models had similar performance across these metrics, with Logistic Regression and Random Forest slightly outperforming SVM, particularly in terms of F1-score. While SVM has its advantages such as its ability to handle high-dimensional data and its robustness to outliers, Logistic Regression offers better interpretability, faster training time, and ease of implementation. Therefore, depending on the specific requirements of a particular problem, one may choose Logistic Regression or Random Forest over SVM for better performance and ease of implementation.

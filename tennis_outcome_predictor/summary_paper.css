@@ -1,0 +1,140 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: rgb(2, 1, 33);
+    color: rgb(255, 116, 9);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: rgb(146, 246, 99);
+    font-weight: bold;
+    margin-bottom: 1em;
+  }
+  
+  h1 {
+    font-size: 2.5em;
+  }
+  
+  h2 {
+    font-size: 2em;
+  }
+  
+  h3 {
+    font-size: 1.75em;
+  }
+  
+  h4 {
+    font-size: 1.5em;
+  }
+  
+  h5 {
+    font-size: 1.25em;
+  }
+  
+  h6 {
+    font-size: 1em;
+  }
+  
+  /* Paragraphs and Lists */
+  p, ol, ul {
+    margin-bottom: 1.5em;
+  }
+  
+  /* Hyperlinks */
+  a {
+    color: rgb(244, 220, 202);
+    text-decoration: none;
+  }
+  
+  a:hover {
+    color: rgb(146, 246, 99);
+  }
+  
+  /* Blockquotes */
+  blockquote {
+    background-color: rgba(146, 246, 99, 0.1);
+    border-left: 4px solid rgb(146, 246, 99);
+    padding: 1em;
+    margin: 1.5em 0;
+  }
+  
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1.5em;
+  }
+  
+  table, th, td {
+    border: 1px solid rgb(146, 246, 99);
+  }
+  
+  th, td {
+    text-align: left;
+    padding: 8px;
+  }
+  
+  th {
+    background-color: rgb(146, 246, 99);
+    color: rgb(12, 10, 39);
+  }
+  
+  tr:nth-child(even) {
+    background-color: rgba(146, 246, 99, 0.1);
+  }
+  
+  /* Code Blocks */
+  pre, code {
+    background-color: rgba(244, 220, 202, 0.2);
+    border: 1px solid rgba(244, 220, 202, 0.5);
+    padding: 1em;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+  
+  /* Images */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+  }
+  
+  /* Captions */
+  figcaption {
+    font-size: 0.9em;
+    text-align: center;
+    margin-bottom: 1.5em;
+  }
+  
+/* Table of Contents */
+.tocify {
+    background-color: rgba(146, 246, 99, 0.1);
+    padding: 1em;
+    margin-bottom: 2em;
+  }
+  
+  .tocify ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .tocify ul li {
+    margin-bottom: 0.5em;
+  }
+  
+  .tocify-item a{
+    color: rgb(81, 255, 0) !important;
+    text-decoration: none;
+  }
+  
+  .tocify-item a:hover {
+    color: rgba(41, 130, 0, 0.8) !important;
+    text-decoration: underline;
+  }
+    
